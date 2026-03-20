@@ -166,7 +166,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     setEditProduct(p);
     setForm({
       title: p.title, type: p.type, price: String(p.price), originalPrice: String(p.originalPrice || ""),
-      imageUrl: p.imageUrl, description: p.description, razorpayLink: p.razorpayLink, previewLink: p.previewLink || "",
+      imageUrl: p.imageUrl, description: p.description, previewLink: p.previewLink || "",
       bestSelling: p.bestSelling || false, category: p.category || "",
     });
     setShowAddForm(true);
