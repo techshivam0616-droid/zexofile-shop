@@ -67,7 +67,13 @@ const FloatingChat: React.FC = () => {
   }, [messages]);
 
   const handleSend = async () => {
-    if (!message.trim() || !user || sending) return;
+    if (!message.trim() || sending) return;
+    
+    if (!user) {
+      toast.error("Please login first to send a message");
+      return;
+    }
+
     const targetId = isAdmin ? activeThread : user.uid;
     if (!targetId) return;
 
@@ -92,6 +98,8 @@ const FloatingChat: React.FC = () => {
         lastTimestamp: Date.now(),
         unreadAdmin: !isAdmin,
       });
+
+      toast.success("Message sent!");
     } catch (error: any) {
       console.error("Chat send error:", error);
       toast.error("Message send failed: " + (error.message || "Unknown error"));
@@ -100,9 +108,6 @@ const FloatingChat: React.FC = () => {
       setSending(false);
     }
   };
-
-  // Show chat button for all users, but prompt login when trying to send
-  const showChat = true;
 
   return (
     <>
@@ -147,7 +152,12 @@ const FloatingChat: React.FC = () => {
               </div>
             ) : (
               <div className="p-3 space-y-2">
-                {messages.length === 0 && (
+                {!user && (
+                  <p className="text-xs text-muted-foreground text-center py-6">
+                    Please login to send us a message!
+                  </p>
+                )}
+                {user && messages.length === 0 && (
                   <p className="text-xs text-muted-foreground text-center py-6">
                     {isAdmin ? "No messages in this thread." : "Send a message and we'll reply soon!"}
                   </p>
@@ -175,12 +185,13 @@ const FloatingChat: React.FC = () => {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
-                placeholder="Type a message..."
+                placeholder={user ? "Type a message..." : "Login to chat..."}
                 className="flex-1 px-3 py-2 border border-border rounded-lg text-sm bg-background text-foreground outline-none"
+                disabled={!user}
               />
               <button 
                 onClick={handleSend} 
-                disabled={sending || !message.trim()}
+                disabled={sending || !message.trim() || !user}
                 className="w-9 h-9 bg-primary text-primary-foreground rounded-lg flex items-center justify-center disabled:opacity-50"
               >
                 <Send size={16} />

@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Plus, Trash2, Edit, Image, Sliders, Users, FolderOpen,
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
   Globe, GraduationCap, Package, Eye, ToggleLeft, ToggleRight,
   FileText, Shield, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
-  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon
+  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send
 } from "lucide-react";
 import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
@@ -42,7 +42,7 @@ interface Coupon {
   active: boolean;
 }
 
-type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "settings";
+type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "messages" | "settings";
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [tab, setTab] = useState<TabKey>("dashboard");
@@ -56,7 +56,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [editProduct, setEditProduct] = useState<(Product & { id: string }) | null>(null);
   const [form, setForm] = useState({
     title: "", type: "website" as "course" | "website", price: "", originalPrice: "",
-    imageUrl: "", description: "", razorpayLink: "", previewLink: "", bestSelling: false, category: "",
+    imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "",
   });
 
   const [showSliderForm, setShowSliderForm] = useState(false);
@@ -145,7 +145,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       price: parseFloat(form.price),
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
       imageUrl: form.imageUrl, description: form.description,
-      razorpayLink: form.razorpayLink, previewLink: form.previewLink,
+      previewLink: form.previewLink,
       bestSelling: form.bestSelling, category: form.category,
     };
     if (editProduct) {
@@ -157,7 +157,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   };
 
   const resetForm = () => {
-    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", razorpayLink: "", previewLink: "", bestSelling: false, category: "" });
+    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "" });
     setShowAddForm(false);
     setEditProduct(null);
   };
@@ -166,7 +166,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     setEditProduct(p);
     setForm({
       title: p.title, type: p.type, price: String(p.price), originalPrice: String(p.originalPrice || ""),
-      imageUrl: p.imageUrl, description: p.description, razorpayLink: p.razorpayLink, previewLink: p.previewLink || "",
+      imageUrl: p.imageUrl, description: p.description, previewLink: p.previewLink || "",
       bestSelling: p.bestSelling || false, category: p.category || "",
     });
     setShowAddForm(true);
@@ -250,6 +250,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     { key: "projects", label: "Requests", icon: <FolderOpen size={14} /> },
     { key: "users", label: "Users", icon: <Users size={14} /> },
     { key: "feedbacks", label: "Feedback", icon: <MessageSquare size={14} /> },
+    { key: "messages", label: "Messages", icon: <MessageSquare size={14} /> },
     { key: "settings", label: "Settings", icon: <Settings size={14} /> },
   ];
 
@@ -358,8 +359,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                     className="px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 </div>
                 <input placeholder="Image URL" required value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-                <input placeholder="Razorpay Payment Link" required value={form.razorpayLink} onChange={(e) => setForm({ ...form, razorpayLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <input placeholder="Preview/Demo Link" value={form.previewLink} onChange={(e) => setForm({ ...form, previewLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
@@ -591,6 +590,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
         {/* === USERS TAB === */}
         {tab === "users" && <UsersList />}
 
+        {/* === MESSAGES TAB === */}
+        {tab === "messages" && <AdminMessages />}
+
         {/* === SETTINGS TAB === */}
         {tab === "settings" && (
           <div className="space-y-6">
@@ -713,4 +715,133 @@ const UsersList: React.FC = () => {
   );
 };
 
+const AdminMessages: React.FC = () => {
+  const [threads, setThreads] = useState<any[]>([]);
+  const [activeThread, setActiveThread] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = onValue(ref(db, "chatThreads"), (snap) => {
+      const data = snap.val();
+      if (data) {
+        const list = Object.entries(data).map(([id, val]: any) => ({ id, ...val }));
+        list.sort((a: any, b: any) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
+        setThreads(list);
+      } else {
+        setThreads([]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!activeThread) { setMessages([]); return; }
+    const unsub = onValue(ref(db, `chatMessages/${activeThread}`), (snap) => {
+      const data = snap.val();
+      if (data) {
+        setMessages(Object.entries(data).map(([id, val]: any) => ({ id, ...val })));
+      } else {
+        setMessages([]);
+      }
+    });
+    return () => unsub();
+  }, [activeThread]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleReply = async () => {
+    if (!reply.trim() || !activeThread || sending) return;
+    const text = reply.trim();
+    setSending(true);
+    setReply("");
+    try {
+      await push(ref(db, `chatMessages/${activeThread}`), {
+        text,
+        sender: "admin",
+        senderName: "Admin",
+        timestamp: Date.now(),
+      });
+      const thread = threads.find(t => t.id === activeThread);
+      await set(ref(db, `chatThreads/${activeThread}`), {
+        userName: thread?.userName || "User",
+        userEmail: thread?.userEmail || "",
+        lastMessage: text,
+        lastTimestamp: Date.now(),
+        unreadAdmin: false,
+      });
+    } catch (err: any) {
+      setReply(text);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (activeThread) {
+    const thread = threads.find(t => t.id === activeThread);
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setActiveThread(null)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft size={16} /> Back to all messages
+        </button>
+        <div className="bg-muted rounded-xl p-3 mb-2">
+          <p className="text-sm font-semibold text-foreground">{thread?.userName || "User"}</p>
+          <p className="text-xs text-muted-foreground">{thread?.userEmail}</p>
+        </div>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {messages.map((m) => (
+            <div key={m.id} className={`flex flex-col ${m.sender === "admin" ? "items-end" : "items-start"}`}>
+              <p className="text-[10px] text-muted-foreground mb-0.5">{m.senderName} · {new Date(m.timestamp).toLocaleString()}</p>
+              <div className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${
+                m.sender === "admin"
+                  ? "bg-primary text-primary-foreground rounded-tr-none"
+                  : "bg-muted text-foreground rounded-tl-none border border-border"
+              }`}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+        <div className="flex gap-2 mt-3">
+          <input value={reply} onChange={(e) => setReply(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
+            placeholder="Type a reply..."
+            className="flex-1 px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+          <button onClick={handleReply} disabled={sending || !reply.trim()}
+            className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1">
+            <Send size={14} /> Send
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground mb-4">User messages from the floating chat widget.</p>
+      {threads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No messages yet.</p>}
+      {threads.map((t) => (
+        <button key={t.id} onClick={() => setActiveThread(t.id)}
+          className="w-full text-left p-3 bg-muted rounded-xl hover:bg-accent transition-colors">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">{t.userName}</p>
+            <div className="flex items-center gap-2">
+              {t.unreadAdmin && <span className="w-2 h-2 rounded-full bg-primary" />}
+              <p className="text-[10px] text-muted-foreground">{t.lastTimestamp ? new Date(t.lastTimestamp).toLocaleDateString() : ""}</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{t.lastMessage}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{t.userEmail}</p>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 export default AdminPanel;
+
