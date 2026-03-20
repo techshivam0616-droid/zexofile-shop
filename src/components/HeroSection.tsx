@@ -102,11 +102,6 @@ const HeroSection: React.FC<HeroProps> = ({ onShopNow }) => {
           <p className="text-sm sm:text-base text-muted-foreground mt-3 max-w-md mx-auto">
             One <strong className="text-foreground">beautiful link</strong> that holds memories, emotions, and moments.
           </p>
-          <div className="flex gap-2 justify-center mt-4">
-            <span className="w-2 h-2 rounded-full bg-foreground" />
-            <span className="w-2 h-2 rounded-full bg-border" />
-            <span className="w-2 h-2 rounded-full bg-border" />
-          </div>
         </div>
       )}
 
