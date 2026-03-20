@@ -590,6 +590,9 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
         {/* === USERS TAB === */}
         {tab === "users" && <UsersList />}
 
+        {/* === MESSAGES TAB === */}
+        {tab === "messages" && <AdminMessages />}
+
         {/* === SETTINGS TAB === */}
         {tab === "settings" && (
           <div className="space-y-6">
