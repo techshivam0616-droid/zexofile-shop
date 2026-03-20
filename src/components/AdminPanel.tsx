@@ -42,7 +42,7 @@ interface Coupon {
   active: boolean;
 }
 
-type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "settings";
+type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "messages" | "settings";
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [tab, setTab] = useState<TabKey>("dashboard");
