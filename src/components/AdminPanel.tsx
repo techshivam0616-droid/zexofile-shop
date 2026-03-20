@@ -157,7 +157,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   };
 
   const resetForm = () => {
-    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", razorpayLink: "", previewLink: "", bestSelling: false, category: "" });
+    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "" });
     setShowAddForm(false);
     setEditProduct(null);
   };
