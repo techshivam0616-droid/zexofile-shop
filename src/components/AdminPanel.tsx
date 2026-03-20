@@ -715,4 +715,133 @@ const UsersList: React.FC = () => {
   );
 };
 
+const AdminMessages: React.FC = () => {
+  const [threads, setThreads] = useState<any[]>([]);
+  const [activeThread, setActiveThread] = useState<string | null>(null);
+  const [messages, setMessages] = useState<any[]>([]);
+  const [reply, setReply] = useState("");
+  const [sending, setSending] = useState(false);
+  const bottomRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const unsub = onValue(ref(db, "chatThreads"), (snap) => {
+      const data = snap.val();
+      if (data) {
+        const list = Object.entries(data).map(([id, val]: any) => ({ id, ...val }));
+        list.sort((a: any, b: any) => (b.lastTimestamp || 0) - (a.lastTimestamp || 0));
+        setThreads(list);
+      } else {
+        setThreads([]);
+      }
+    });
+    return () => unsub();
+  }, []);
+
+  useEffect(() => {
+    if (!activeThread) { setMessages([]); return; }
+    const unsub = onValue(ref(db, `chatMessages/${activeThread}`), (snap) => {
+      const data = snap.val();
+      if (data) {
+        setMessages(Object.entries(data).map(([id, val]: any) => ({ id, ...val })));
+      } else {
+        setMessages([]);
+      }
+    });
+    return () => unsub();
+  }, [activeThread]);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  const handleReply = async () => {
+    if (!reply.trim() || !activeThread || sending) return;
+    const text = reply.trim();
+    setSending(true);
+    setReply("");
+    try {
+      await push(ref(db, `chatMessages/${activeThread}`), {
+        text,
+        sender: "admin",
+        senderName: "Admin",
+        timestamp: Date.now(),
+      });
+      const thread = threads.find(t => t.id === activeThread);
+      await set(ref(db, `chatThreads/${activeThread}`), {
+        userName: thread?.userName || "User",
+        userEmail: thread?.userEmail || "",
+        lastMessage: text,
+        lastTimestamp: Date.now(),
+        unreadAdmin: false,
+      });
+    } catch (err: any) {
+      setReply(text);
+    } finally {
+      setSending(false);
+    }
+  };
+
+  if (activeThread) {
+    const thread = threads.find(t => t.id === activeThread);
+    return (
+      <div className="space-y-3">
+        <button onClick={() => setActiveThread(null)} className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground">
+          <ArrowLeft size={16} /> Back to all messages
+        </button>
+        <div className="bg-muted rounded-xl p-3 mb-2">
+          <p className="text-sm font-semibold text-foreground">{thread?.userName || "User"}</p>
+          <p className="text-xs text-muted-foreground">{thread?.userEmail}</p>
+        </div>
+        <div className="space-y-2 max-h-[400px] overflow-y-auto">
+          {messages.map((m) => (
+            <div key={m.id} className={`flex flex-col ${m.sender === "admin" ? "items-end" : "items-start"}`}>
+              <p className="text-[10px] text-muted-foreground mb-0.5">{m.senderName} · {new Date(m.timestamp).toLocaleString()}</p>
+              <div className={`max-w-[80%] px-3 py-2 rounded-xl text-xs ${
+                m.sender === "admin"
+                  ? "bg-primary text-primary-foreground rounded-tr-none"
+                  : "bg-muted text-foreground rounded-tl-none border border-border"
+              }`}>
+                {m.text}
+              </div>
+            </div>
+          ))}
+          <div ref={bottomRef} />
+        </div>
+        <div className="flex gap-2 mt-3">
+          <input value={reply} onChange={(e) => setReply(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleReply(); } }}
+            placeholder="Type a reply..."
+            className="flex-1 px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+          <button onClick={handleReply} disabled={sending || !reply.trim()}
+            className="px-4 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium disabled:opacity-50 flex items-center gap-1">
+            <Send size={14} /> Send
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-2">
+      <p className="text-sm text-muted-foreground mb-4">User messages from the floating chat widget.</p>
+      {threads.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No messages yet.</p>}
+      {threads.map((t) => (
+        <button key={t.id} onClick={() => setActiveThread(t.id)}
+          className="w-full text-left p-3 bg-muted rounded-xl hover:bg-accent transition-colors">
+          <div className="flex items-center justify-between">
+            <p className="text-sm font-medium text-foreground">{t.userName}</p>
+            <div className="flex items-center gap-2">
+              {t.unreadAdmin && <span className="w-2 h-2 rounded-full bg-primary" />}
+              <p className="text-[10px] text-muted-foreground">{t.lastTimestamp ? new Date(t.lastTimestamp).toLocaleDateString() : ""}</p>
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground truncate mt-0.5">{t.lastMessage}</p>
+          <p className="text-[10px] text-muted-foreground mt-0.5">{t.userEmail}</p>
+        </button>
+      ))}
+    </div>
+  );
+};
+
 export default AdminPanel;
+
