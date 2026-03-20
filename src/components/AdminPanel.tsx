@@ -145,7 +145,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       price: parseFloat(form.price),
       originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
       imageUrl: form.imageUrl, description: form.description,
-      razorpayLink: form.razorpayLink, previewLink: form.previewLink,
+      previewLink: form.previewLink,
       bestSelling: form.bestSelling, category: form.category,
     };
     if (editProduct) {
