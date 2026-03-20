@@ -250,6 +250,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     { key: "projects", label: "Requests", icon: <FolderOpen size={14} /> },
     { key: "users", label: "Users", icon: <Users size={14} /> },
     { key: "feedbacks", label: "Feedback", icon: <MessageSquare size={14} /> },
+    { key: "messages", label: "Messages", icon: <MessageSquare size={14} /> },
     { key: "settings", label: "Settings", icon: <Settings size={14} /> },
   ];
 
