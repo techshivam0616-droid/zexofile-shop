@@ -360,7 +360,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                 </div>
                 <input placeholder="Image URL" required value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-                <input placeholder="Razorpay Payment Link" required value={form.razorpayLink} onChange={(e) => setForm({ ...form, razorpayLink: e.target.value })}
+                <input placeholder="Preview/Demo Link" value={form.previewLink} onChange={(e) => setForm({ ...form, previewLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <input placeholder="Preview/Demo Link" value={form.previewLink} onChange={(e) => setForm({ ...form, previewLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
