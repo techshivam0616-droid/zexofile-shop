@@ -4,7 +4,7 @@ import {
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
   Globe, GraduationCap, Package, Eye, ToggleLeft, ToggleRight,
   FileText, Shield, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
-  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon
+  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send
 } from "lucide-react";
 import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
