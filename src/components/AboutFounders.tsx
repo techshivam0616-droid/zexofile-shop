@@ -36,17 +36,19 @@ const AboutFounders: React.FC = () => {
       </div>
 
       {/* Founder Cards with individual photos */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
+      <div className="flex flex-col gap-4 max-w-lg mx-auto mb-8">
         {founders.map((f, i) => (
           <div
             key={f.name}
-            className="bg-muted rounded-xl p-5 text-center border border-border hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+            className="bg-muted rounded-xl p-5 flex items-center gap-4 border border-border hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-fade-in"
             style={{ animationDelay: `${i * 150}ms` }}
           >
-            <img src={f.image} alt={f.name} className="w-16 h-16 rounded-full object-cover mx-auto mb-3 border-2 border-border" />
-            <h3 className="text-sm font-bold text-foreground">{f.name}</h3>
-            <p className="text-xs text-primary font-medium mt-1">{f.role}</p>
-            <p className="text-xs text-muted-foreground mt-1">{f.expertise}</p>
+            <img src={f.image} alt={f.name} className="w-20 h-20 rounded-full object-cover object-top flex-shrink-0 border-2 border-border" />
+            <div className="text-left">
+              <h3 className="text-sm font-bold text-foreground">{f.name}</h3>
+              <p className="text-xs text-primary font-medium mt-1">{f.role}</p>
+              <p className="text-xs text-muted-foreground mt-1">{f.expertise}</p>
+            </div>
           </div>
         ))}
       </div>
