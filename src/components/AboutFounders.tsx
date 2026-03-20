@@ -1,10 +1,11 @@
 import React from "react";
 import { Award, Code, Globe, Smartphone, Sparkles, Users, Rocket, Star } from "lucide-react";
-import foundersImg from "@/assets/founders.png";
+import niteshImg from "@/assets/nitesh.png";
+import shivamImg from "@/assets/shivam.png";
 
 const founders = [
-  { name: "Nitesh Prakash", role: "Co-Founder & CEO", expertise: "Full-Stack Web Developer" },
-  { name: "Shivam Kumar", role: "Co-Founder & CEO", expertise: "App & Web Developer" },
+  { name: "Nitesh Prakash", role: "Co-Founder & CEO", expertise: "Full-Stack Web Developer", image: niteshImg },
+  { name: "Shivam Kumar", role: "Co-Founder & CEO", expertise: "App & Web Developer", image: shivamImg },
 ];
 
 const skills = [
@@ -22,31 +23,27 @@ const AboutFounders: React.FC = () => {
       </h2>
       <p className="text-sm text-muted-foreground text-center mb-8">The minds behind ZexoFile Shop</p>
 
-      {/* Founders Photo */}
-      <div className="max-w-xs mx-auto mb-8 animate-fade-in">
-        <div className="relative rounded-2xl overflow-hidden shadow-lg border border-border">
-          <img src={foundersImg} alt="Nitesh Prakash & Shivam Kumar - Founders of ZexoFile Shop" className="w-full aspect-[3/4] object-cover" />
-          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-foreground/70 to-transparent p-4">
-            <p className="text-sm font-bold text-white text-center">Nitesh & Shivam</p>
-            <p className="text-xs text-white/80 text-center">Co-Founders, ZexoFile Shop</p>
-          </div>
-        </div>
-      </div>
-
-      {/* Founder Cards */}
+      {/* Founder Cards with Photos */}
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-lg mx-auto mb-8">
         {founders.map((f, i) => (
           <div
             key={f.name}
-            className="bg-muted rounded-xl p-5 text-center border border-border hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-fade-in"
+            className="bg-muted rounded-xl overflow-hidden border border-border hover:shadow-md transition-all duration-300 hover:-translate-y-1 animate-fade-in"
             style={{ animationDelay: `${i * 150}ms` }}
           >
-            <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3">
-              <Award size={22} className="text-foreground" />
+            <div className="relative aspect-[3/4] overflow-hidden">
+              <img src={f.image} alt={f.name} className="w-full h-full object-cover" loading="lazy" />
+              <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-foreground/70 to-transparent p-4">
+                <p className="text-sm font-bold text-white text-center">{f.name}</p>
+                <p className="text-xs text-white/80 text-center">{f.role}</p>
+              </div>
             </div>
-            <h3 className="text-sm font-bold text-foreground">{f.name}</h3>
-            <p className="text-xs text-primary font-medium mt-1">{f.role}</p>
-            <p className="text-xs text-muted-foreground mt-1">{f.expertise}</p>
+            <div className="p-4 text-center">
+              <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-2">
+                <Award size={20} className="text-foreground" />
+              </div>
+              <p className="text-xs text-muted-foreground">{f.expertise}</p>
+            </div>
           </div>
         ))}
       </div>

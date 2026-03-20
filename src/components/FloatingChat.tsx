@@ -101,7 +101,8 @@ const FloatingChat: React.FC = () => {
     }
   };
 
-  if (!user) return null;
+  // Show chat button for all users, but prompt login when trying to send
+  const showChat = true;
 
   return (
     <>
