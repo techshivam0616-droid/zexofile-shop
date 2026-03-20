@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ArrowLeft, Plus, Trash2, Edit, Image, Sliders, Users, FolderOpen,
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
