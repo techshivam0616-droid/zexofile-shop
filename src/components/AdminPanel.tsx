@@ -149,6 +149,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       imageUrl: form.imageUrl, description: form.description,
       previewLink: form.previewLink,
       bestSelling: form.bestSelling, category: form.category,
+      deliveryLink: form.deliveryLink,
+      screenshots: form.screenshots,
+      features: form.features,
+      techStack: form.techStack,
     };
     if (editProduct) {
       await set(ref(db, `products/${editProduct.id}`), productData);
