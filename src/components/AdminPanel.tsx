@@ -4,8 +4,9 @@ import {
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
   Globe, GraduationCap, Package, Eye, ToggleLeft, ToggleRight,
   FileText, Shield, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
-  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send
+  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send, Link, Monitor, Cpu
 } from "lucide-react";
+import ImageUpload, { MultiImageUpload } from "@/components/ImageUpload";
 import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -57,6 +58,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [form, setForm] = useState({
     title: "", type: "website" as "course" | "website", price: "", originalPrice: "",
     imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "",
+    deliveryLink: "", screenshots: [] as string[], features: "", techStack: "",
   });
 
   const [showSliderForm, setShowSliderForm] = useState(false);
@@ -147,6 +149,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       imageUrl: form.imageUrl, description: form.description,
       previewLink: form.previewLink,
       bestSelling: form.bestSelling, category: form.category,
+      deliveryLink: form.deliveryLink,
+      screenshots: form.screenshots,
+      features: form.features,
+      techStack: form.techStack,
     };
     if (editProduct) {
       await set(ref(db, `products/${editProduct.id}`), productData);
@@ -157,8 +163,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   };
 
   const resetForm = () => {
-    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "" });
+    setForm({ title: "", type: "website", price: "", originalPrice: "", imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "", deliveryLink: "", screenshots: [], features: "", techStack: "" });
     setShowAddForm(false);
+    setEditProduct(null);
+  };
     setEditProduct(null);
   };
 
@@ -168,6 +176,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       title: p.title, type: p.type, price: String(p.price), originalPrice: String(p.originalPrice || ""),
       imageUrl: p.imageUrl, description: p.description, previewLink: p.previewLink || "",
       bestSelling: p.bestSelling || false, category: p.category || "",
+      deliveryLink: (p as any).deliveryLink || "", screenshots: (p as any).screenshots || [],
+      features: (p as any).features || "", techStack: (p as any).techStack || "",
     });
     setShowAddForm(true);
   };
@@ -358,12 +368,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   <input placeholder="Original Price" type="number" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
                     className="px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 </div>
-                <input placeholder="Image URL" required value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Product Image</label>
+                  <ImageUpload value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} placeholder="Upload product image" />
+                </div>
                 <input placeholder="Preview/Demo Link" value={form.previewLink} onChange={(e) => setForm({ ...form, previewLink: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <input placeholder="Delivery Link (sent after payment)" value={form.deliveryLink} onChange={(e) => setForm({ ...form, deliveryLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <textarea placeholder="Description" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none min-h-[80px]" />
+                <input placeholder="Features (comma separated)" value={form.features} onChange={(e) => setForm({ ...form, features: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <input placeholder="Tech Stack (e.g. React, Node.js)" value={form.techStack} onChange={(e) => setForm({ ...form, techStack: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Screenshots</label>
+                  <MultiImageUpload values={form.screenshots} onChange={(urls) => setForm({ ...form, screenshots: urls })} placeholder="Add screenshots" />
+                </div>
 
                 <button type="button" onClick={() => setForm({ ...form, bestSelling: !form.bestSelling })}
                   className="w-full flex items-center justify-between px-3 py-2.5 border border-border rounded-lg text-sm bg-background">
@@ -439,8 +461,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <input placeholder="Subtitle" value={sliderForm.subtitle} onChange={(e) => setSliderForm({ ...sliderForm, subtitle: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-                <input placeholder="Image URL" required value={sliderForm.imageUrl} onChange={(e) => setSliderForm({ ...sliderForm, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Slide Image</label>
+                  <ImageUpload value={sliderForm.imageUrl} onChange={(url) => setSliderForm({ ...sliderForm, imageUrl: url })} placeholder="Upload slide image" />
+                </div>
                 <input placeholder="Link (optional)" value={sliderForm.link} onChange={(e) => setSliderForm({ ...sliderForm, link: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <div className="flex gap-2">

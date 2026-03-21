@@ -13,6 +13,10 @@ export interface Product {
   previewLink?: string;
   bestSelling?: boolean;
   category?: string;
+  deliveryLink?: string;
+  screenshots?: string[];
+  features?: string;
+  techStack?: string;
 }
 
 interface ProductGridProps {
