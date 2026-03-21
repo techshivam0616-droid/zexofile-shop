@@ -58,6 +58,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [form, setForm] = useState({
     title: "", type: "website" as "course" | "website", price: "", originalPrice: "",
     imageUrl: "", description: "", previewLink: "", bestSelling: false, category: "",
+    deliveryLink: "", screenshots: [] as string[], features: "", techStack: "",
   });
 
   const [showSliderForm, setShowSliderForm] = useState(false);
