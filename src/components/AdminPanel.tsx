@@ -167,8 +167,6 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     setShowAddForm(false);
     setEditProduct(null);
   };
-    setEditProduct(null);
-  };
 
   const handleEditProduct = (p: Product & { id: string }) => {
     setEditProduct(p);
