@@ -461,8 +461,10 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <input placeholder="Subtitle" value={sliderForm.subtitle} onChange={(e) => setSliderForm({ ...sliderForm, subtitle: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-                <input placeholder="Image URL" required value={sliderForm.imageUrl} onChange={(e) => setSliderForm({ ...sliderForm, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Slide Image</label>
+                  <ImageUpload value={sliderForm.imageUrl} onChange={(url) => setSliderForm({ ...sliderForm, imageUrl: url })} placeholder="Upload slide image" />
+                </div>
                 <input placeholder="Link (optional)" value={sliderForm.link} onChange={(e) => setSliderForm({ ...sliderForm, link: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <div className="flex gap-2">
