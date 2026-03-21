@@ -176,6 +176,8 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
       title: p.title, type: p.type, price: String(p.price), originalPrice: String(p.originalPrice || ""),
       imageUrl: p.imageUrl, description: p.description, previewLink: p.previewLink || "",
       bestSelling: p.bestSelling || false, category: p.category || "",
+      deliveryLink: (p as any).deliveryLink || "", screenshots: (p as any).screenshots || [],
+      features: (p as any).features || "", techStack: (p as any).techStack || "",
     });
     setShowAddForm(true);
   };
