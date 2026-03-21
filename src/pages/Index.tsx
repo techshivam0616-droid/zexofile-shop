@@ -94,10 +94,15 @@ const Index = () => {
             price: finalPrice / 100,
             razorpayPaymentId: response.razorpay_payment_id,
             purchasedAt: Date.now(),
-            downloadLink: product.previewLink || "",
+            deliveryLink: (product as any).deliveryLink || product.previewLink || "",
           });
           setCart(cart.filter(c => c.id !== product.id));
-          toast.success("Payment successful! Check your profile for purchase history.");
+          if ((product as any).deliveryLink) {
+            toast.success("Payment successful! Opening your delivery link...");
+            window.open((product as any).deliveryLink, "_blank");
+          } else {
+            toast.success("Payment successful! Check your profile for purchase history.");
+          }
         } catch (err) {
           console.error("Purchase save error:", err);
           toast.error("Payment done but failed to save. Contact support.");
