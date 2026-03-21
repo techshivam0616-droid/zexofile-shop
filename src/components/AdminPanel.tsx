@@ -4,8 +4,9 @@ import {
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
   Globe, GraduationCap, Package, Eye, ToggleLeft, ToggleRight,
   FileText, Shield, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
-  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send
+  ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send, Link, Monitor, Cpu
 } from "lucide-react";
+import ImageUpload, { MultiImageUpload } from "@/components/ImageUpload";
 import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";
