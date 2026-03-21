@@ -368,12 +368,24 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   <input placeholder="Original Price" type="number" value={form.originalPrice} onChange={(e) => setForm({ ...form, originalPrice: e.target.value })}
                     className="px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 </div>
-                <input placeholder="Image URL" required value={form.imageUrl} onChange={(e) => setForm({ ...form, imageUrl: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Product Image</label>
+                  <ImageUpload value={form.imageUrl} onChange={(url) => setForm({ ...form, imageUrl: url })} placeholder="Upload product image" />
+                </div>
                 <input placeholder="Preview/Demo Link" value={form.previewLink} onChange={(e) => setForm({ ...form, previewLink: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <input placeholder="Delivery Link (sent after payment)" value={form.deliveryLink} onChange={(e) => setForm({ ...form, deliveryLink: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
                 <textarea placeholder="Description" required value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none min-h-[80px]" />
+                <input placeholder="Features (comma separated)" value={form.features} onChange={(e) => setForm({ ...form, features: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <input placeholder="Tech Stack (e.g. React, Node.js)" value={form.techStack} onChange={(e) => setForm({ ...form, techStack: e.target.value })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <div className="space-y-1">
+                  <label className="text-xs text-muted-foreground">Screenshots</label>
+                  <MultiImageUpload values={form.screenshots} onChange={(urls) => setForm({ ...form, screenshots: urls })} placeholder="Add screenshots" />
+                </div>
 
                 <button type="button" onClick={() => setForm({ ...form, bestSelling: !form.bestSelling })}
                   className="w-full flex items-center justify-between px-3 py-2.5 border border-border rounded-lg text-sm bg-background">
