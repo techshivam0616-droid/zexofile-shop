@@ -242,8 +242,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Category CRUD
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
-    await push(ref(db, "categories"), { name: newCategory.trim() });
-    setNewCategory("");
+    try {
+      await push(ref(db, "categories"), { name: newCategory.trim() });
+      setNewCategory("");
+    } catch (err: any) {
+      console.error("Add category error:", err);
+      alert("Failed to add category: " + (err?.message || "Unknown error"));
+    }
   };
 
   const handleDeleteCategory = async (id: string) => {
