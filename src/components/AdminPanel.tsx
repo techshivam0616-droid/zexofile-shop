@@ -193,14 +193,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Slider CRUD
   const handleSaveSlider = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editSlider) {
-      await set(ref(db, `sliders/${editSlider.id}`), sliderForm);
-    } else {
-      await push(ref(db, "sliders"), sliderForm);
+    try {
+      if (editSlider) {
+        await set(ref(db, `sliders/${editSlider.id}`), sliderForm);
+      } else {
+        await push(ref(db, "sliders"), sliderForm);
+      }
+      setSliderForm({ title: "", subtitle: "", imageUrl: "", link: "" });
+      setShowSliderForm(false);
+      setEditSlider(null);
+      alert("Slider saved!");
+    } catch (err: any) {
+      console.error("Save slider error:", err);
+      alert("Failed to save slider: " + (err?.message || "Unknown error"));
     }
-    setSliderForm({ title: "", subtitle: "", imageUrl: "", link: "" });
-    setShowSliderForm(false);
-    setEditSlider(null);
   };
 
   const handleEditSlider = (s: SliderItem & { id: string }) => {
