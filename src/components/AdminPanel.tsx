@@ -142,24 +142,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Product CRUD
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const productData = {
-      title: form.title, type: form.type,
-      price: parseFloat(form.price),
-      originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
-      imageUrl: form.imageUrl, description: form.description,
-      previewLink: form.previewLink,
-      bestSelling: form.bestSelling, category: form.category,
-      deliveryLink: form.deliveryLink,
-      screenshots: form.screenshots,
-      features: form.features,
-      techStack: form.techStack,
-    };
-    if (editProduct) {
-      await set(ref(db, `products/${editProduct.id}`), productData);
-    } else {
-      await push(ref(db, "products"), productData);
+    try {
+      const productData = {
+        title: form.title, type: form.type,
+        price: parseFloat(form.price) || 0,
+        originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
+        imageUrl: form.imageUrl || "", description: form.description,
+        previewLink: form.previewLink || "",
+        bestSelling: form.bestSelling || false, category: form.category || "",
+        deliveryLink: form.deliveryLink || "",
+        screenshots: form.screenshots || [],
+        features: form.features || "",
+        techStack: form.techStack || "",
+      };
+      if (editProduct) {
+        await set(ref(db, `products/${editProduct.id}`), productData);
+      } else {
+        await push(ref(db, "products"), productData);
+      }
+      resetForm();
+      alert("Product saved successfully!");
+    } catch (err: any) {
+      console.error("Save product error:", err);
+      alert("Failed to save product: " + (err?.message || "Unknown error"));
     }
-    resetForm();
   };
 
   const resetForm = () => {
