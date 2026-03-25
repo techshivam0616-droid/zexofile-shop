@@ -45,10 +45,10 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onClose, onBuy, 
               <ShoppingCart size={16} /> Add to cart
             </button>
           )}
-          <a href={product.razorpayLink} target="_blank" rel="noopener noreferrer"
+          <button onClick={() => onBuy(product)}
             className="w-full py-3.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2">
             <CreditCard size={16} /> Buy it now
-          </a>
+          </button>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
