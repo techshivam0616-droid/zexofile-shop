@@ -142,24 +142,30 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Product CRUD
   const handleSaveProduct = async (e: React.FormEvent) => {
     e.preventDefault();
-    const productData = {
-      title: form.title, type: form.type,
-      price: parseFloat(form.price),
-      originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
-      imageUrl: form.imageUrl, description: form.description,
-      previewLink: form.previewLink,
-      bestSelling: form.bestSelling, category: form.category,
-      deliveryLink: form.deliveryLink,
-      screenshots: form.screenshots,
-      features: form.features,
-      techStack: form.techStack,
-    };
-    if (editProduct) {
-      await set(ref(db, `products/${editProduct.id}`), productData);
-    } else {
-      await push(ref(db, "products"), productData);
+    try {
+      const productData = {
+        title: form.title, type: form.type,
+        price: parseFloat(form.price) || 0,
+        originalPrice: form.originalPrice ? parseFloat(form.originalPrice) : null,
+        imageUrl: form.imageUrl || "", description: form.description,
+        previewLink: form.previewLink || "",
+        bestSelling: form.bestSelling || false, category: form.category || "",
+        deliveryLink: form.deliveryLink || "",
+        screenshots: form.screenshots || [],
+        features: form.features || "",
+        techStack: form.techStack || "",
+      };
+      if (editProduct) {
+        await set(ref(db, `products/${editProduct.id}`), productData);
+      } else {
+        await push(ref(db, "products"), productData);
+      }
+      resetForm();
+      alert("Product saved successfully!");
+    } catch (err: any) {
+      console.error("Save product error:", err);
+      alert("Failed to save product: " + (err?.message || "Unknown error"));
     }
-    resetForm();
   };
 
   const resetForm = () => {
@@ -187,14 +193,20 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Slider CRUD
   const handleSaveSlider = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (editSlider) {
-      await set(ref(db, `sliders/${editSlider.id}`), sliderForm);
-    } else {
-      await push(ref(db, "sliders"), sliderForm);
+    try {
+      if (editSlider) {
+        await set(ref(db, `sliders/${editSlider.id}`), sliderForm);
+      } else {
+        await push(ref(db, "sliders"), sliderForm);
+      }
+      setSliderForm({ title: "", subtitle: "", imageUrl: "", link: "" });
+      setShowSliderForm(false);
+      setEditSlider(null);
+      alert("Slider saved!");
+    } catch (err: any) {
+      console.error("Save slider error:", err);
+      alert("Failed to save slider: " + (err?.message || "Unknown error"));
     }
-    setSliderForm({ title: "", subtitle: "", imageUrl: "", link: "" });
-    setShowSliderForm(false);
-    setEditSlider(null);
   };
 
   const handleEditSlider = (s: SliderItem & { id: string }) => {
@@ -210,22 +222,33 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Coupon CRUD
   const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { code: couponForm.code, discount: parseFloat(couponForm.discount), active: couponForm.active };
-    if (editCoupon) {
-      await set(ref(db, `coupons/${editCoupon.id}`), data);
-    } else {
-      await push(ref(db, "coupons"), data);
+    try {
+      const data = { code: couponForm.code, discount: parseFloat(couponForm.discount) || 0, active: couponForm.active };
+      if (editCoupon) {
+        await set(ref(db, `coupons/${editCoupon.id}`), data);
+      } else {
+        await push(ref(db, "coupons"), data);
+      }
+      setCouponForm({ code: "", discount: "", active: true });
+      setShowCouponForm(false);
+      setEditCoupon(null);
+      alert("Coupon saved!");
+    } catch (err: any) {
+      console.error("Save coupon error:", err);
+      alert("Failed to save coupon: " + (err?.message || "Unknown error"));
     }
-    setCouponForm({ code: "", discount: "", active: true });
-    setShowCouponForm(false);
-    setEditCoupon(null);
   };
 
   // Category CRUD
   const handleAddCategory = async () => {
     if (!newCategory.trim()) return;
-    await push(ref(db, "categories"), { name: newCategory.trim() });
-    setNewCategory("");
+    try {
+      await push(ref(db, "categories"), { name: newCategory.trim() });
+      setNewCategory("");
+    } catch (err: any) {
+      console.error("Add category error:", err);
+      alert("Failed to add category: " + (err?.message || "Unknown error"));
+    }
   };
 
   const handleDeleteCategory = async (id: string) => {
