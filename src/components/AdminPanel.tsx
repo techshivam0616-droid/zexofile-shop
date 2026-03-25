@@ -222,15 +222,21 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   // Coupon CRUD
   const handleSaveCoupon = async (e: React.FormEvent) => {
     e.preventDefault();
-    const data = { code: couponForm.code, discount: parseFloat(couponForm.discount), active: couponForm.active };
-    if (editCoupon) {
-      await set(ref(db, `coupons/${editCoupon.id}`), data);
-    } else {
-      await push(ref(db, "coupons"), data);
+    try {
+      const data = { code: couponForm.code, discount: parseFloat(couponForm.discount) || 0, active: couponForm.active };
+      if (editCoupon) {
+        await set(ref(db, `coupons/${editCoupon.id}`), data);
+      } else {
+        await push(ref(db, "coupons"), data);
+      }
+      setCouponForm({ code: "", discount: "", active: true });
+      setShowCouponForm(false);
+      setEditCoupon(null);
+      alert("Coupon saved!");
+    } catch (err: any) {
+      console.error("Save coupon error:", err);
+      alert("Failed to save coupon: " + (err?.message || "Unknown error"));
     }
-    setCouponForm({ code: "", discount: "", active: true });
-    setShowCouponForm(false);
-    setEditCoupon(null);
   };
 
   // Category CRUD
