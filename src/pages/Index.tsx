@@ -19,6 +19,9 @@ import LegalPages from "@/components/LegalPages";
 import AboutFounders from "@/components/AboutFounders";
 import FloatingChat from "@/components/FloatingChat";
 import WhatsAppFloat from "@/components/WhatsAppFloat";
+import RoleSelectionModal from "@/components/RoleSelectionModal";
+import { useUserRole } from "@/hooks/useUserRole";
+import { captureRefFromUrl, logAffiliateClick, recordAffiliateSale } from "@/lib/affiliate";
 import { GraduationCap, Globe, Wrench, Search, CreditCard, Infinity, Gem, Zap, Palette, MessageSquare, Mail, ShieldCheck, FileText, HelpCircle, BookOpen, Award } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +29,7 @@ const RAZORPAY_KEY = "rzp_live_SPo0RmeNnQGYT7";
 
 const Index = () => {
   const { user, isAdmin, loading } = useAuth();
+  const { needsRoleSelection } = useUserRole();
   const [products, setProducts] = useState<Product[]>([]);
   const [authOpen, setAuthOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -48,6 +52,14 @@ const Index = () => {
       clearTimeout(timeout);
     });
     return () => { unsub(); clearTimeout(timeout); };
+  }, []);
+
+  useEffect(() => {
+    const code = captureRefFromUrl();
+    if (code) {
+      const params = new URLSearchParams(window.location.search);
+      logAffiliateClick(code, params.get("p") || undefined);
+    }
   }, []);
 
   useEffect(() => {
@@ -97,6 +109,17 @@ const Index = () => {
             deliveryLink: (product as any).deliveryLink || product.previewLink || "",
           });
           setCart(cart.filter(c => c.id !== product.id));
+          const refCode = localStorage.getItem("affiliateRef");
+          if (refCode) {
+            await recordAffiliateSale({
+              code: refCode,
+              productId: product.id,
+              productTitle: product.title,
+              buyerUid: user.uid,
+              amount: finalPrice / 100,
+              paymentId: response.razorpay_payment_id,
+            });
+          }
           if ((product as any).deliveryLink) {
             toast.success("Payment successful! Opening your delivery link...");
             window.open((product as any).deliveryLink, "_blank");
@@ -303,6 +326,7 @@ const Index = () => {
       {legalPage && <LegalPages page={legalPage} onClose={() => setLegalPage(null)} />}
       <WhatsAppFloat />
       <FloatingChat />
+      <RoleSelectionModal open={!!user && needsRoleSelection && !authOpen} />
     </div>
   );
 };
