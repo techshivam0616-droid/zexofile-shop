@@ -909,5 +909,176 @@ const AdminMessages: React.FC = () => {
   );
 };
 
+const AdminRoles: React.FC = () => {
+  const [verifications, setVerifications] = useState<any[]>([]);
+  const [affiliates, setAffiliates] = useState<any[]>([]);
+  const [users, setUsers] = useState<Record<string, any>>({});
+  const [salesByCode, setSalesByCode] = useState<Record<string, any[]>>({});
+  const [clicksByCode, setClicksByCode] = useState<Record<string, number>>({});
+  const [rejectFor, setRejectFor] = useState<string | null>(null);
+  const [rejectReason, setRejectReason] = useState("");
+  const [reapplyDays, setReapplyDays] = useState(30);
+
+  useEffect(() => {
+    const u1 = onValue(ref(db, "sellerVerifications"), (s) => {
+      const d = s.val();
+      setVerifications(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
+    });
+    const u2 = onValue(ref(db, "affiliates"), (s) => {
+      const d = s.val();
+      setAffiliates(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
+    });
+    const u3 = onValue(ref(db, "users"), (s) => setUsers(s.val() || {}));
+    const u4 = onValue(ref(db, "affiliateSales"), (s) => {
+      const d = s.val() || {};
+      const map: Record<string, any[]> = {};
+      Object.entries(d).forEach(([code, arr]: any) => { map[code] = Object.entries(arr).map(([id, v]: any) => ({ id, ...v })); });
+      setSalesByCode(map);
+    });
+    const u5 = onValue(ref(db, "affiliateClicks"), (s) => {
+      const d = s.val() || {};
+      const map: Record<string, number> = {};
+      Object.entries(d).forEach(([code, arr]: any) => { map[code] = Object.keys(arr).length; });
+      setClicksByCode(map);
+    });
+    return () => { u1(); u2(); u3(); u4(); u5(); };
+  }, []);
+
+  const approve = async (uid: string) => {
+    await update(ref(db, `sellerVerifications/${uid}`), { status: "approved", rejectionReason: null, reapplyAfter: null, reviewedAt: Date.now() });
+    await set(ref(db, `users/${uid}/sellerStatus`), "approved");
+  };
+
+  const doReject = async () => {
+    if (!rejectFor || !rejectReason.trim()) { alert("Reason required"); return; }
+    const reapplyAfter = Date.now() + reapplyDays * 24 * 60 * 60 * 1000;
+    await update(ref(db, `sellerVerifications/${rejectFor}`), { status: "rejected", rejectionReason: rejectReason.trim(), reapplyAfter, reviewedAt: Date.now() });
+    await set(ref(db, `users/${rejectFor}/sellerStatus`), "rejected");
+    setRejectFor(null); setRejectReason(""); setReapplyDays(30);
+  };
+
+  const markSalePaid = async (code: string, saleId: string) => {
+    await set(ref(db, `affiliateSales/${code}/${saleId}/status`), "paid");
+  };
+
+  const roleCounts = Object.values(users).reduce((acc: any, u: any) => {
+    const r = u.role || "unset";
+    acc[r] = (acc[r] || 0) + 1;
+    return acc;
+  }, {});
+
+  return (
+    <div className="space-y-6">
+      <div className="grid grid-cols-4 gap-2">
+        {[
+          { label: "Buyers", val: roleCounts.buyer || 0 },
+          { label: "Sellers", val: roleCounts.seller || 0 },
+          { label: "Affiliates", val: roleCounts.affiliate || 0 },
+          { label: "Unset", val: roleCounts.unset || 0 },
+        ].map(x => (
+          <div key={x.label} className="bg-muted rounded-xl p-3 text-center">
+            <p className="text-xl font-bold text-foreground">{x.val}</p>
+            <p className="text-[10px] text-muted-foreground">{x.label}</p>
+          </div>
+        ))}
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><ShieldCheck size={14} /> Seller Verifications</h3>
+        {verifications.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No verification requests yet.</p>}
+        <div className="space-y-3">
+          {verifications.map(v => (
+            <div key={v.id} className="bg-muted rounded-xl p-3">
+              <div className="flex gap-3">
+                {v.idPhotoUrl && <a href={v.idPhotoUrl} target="_blank" rel="noreferrer"><img src={v.idPhotoUrl} alt="ID" className="w-16 h-16 rounded-lg object-cover border border-border" /></a>}
+                <div className="flex-1 min-w-0 text-xs space-y-0.5">
+                  <p className="font-semibold text-foreground">{v.fullName} <span className="text-muted-foreground">@{v.username}</span></p>
+                  <p className="text-muted-foreground">📱 {v.mobile} · 🎂 {v.dob}</p>
+                  <p className="text-muted-foreground truncate">{v.email}</p>
+                  <p className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    v.status === "approved" ? "bg-primary/20 text-foreground"
+                    : v.status === "rejected" ? "bg-destructive/20 text-destructive"
+                    : "bg-warning/20 text-foreground"
+                  }`}>{v.status}</p>
+                  {v.rejectionReason && <p className="text-destructive">Reason: {v.rejectionReason}</p>}
+                </div>
+              </div>
+              {v.status === "pending" && (
+                <div className="flex gap-2 mt-2">
+                  <button onClick={() => approve(v.id)} className="flex-1 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium flex items-center justify-center gap-1"><Check size={12} /> Approve</button>
+                  <button onClick={() => setRejectFor(v.id)} className="flex-1 py-1.5 border border-destructive text-destructive rounded text-xs font-medium flex items-center justify-center gap-1"><XIcon size={12} /> Reject</button>
+                </div>
+              )}
+              {rejectFor === v.id && (
+                <div className="mt-2 p-2 bg-background rounded-lg space-y-2">
+                  <textarea placeholder="Reason for rejection" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+                    className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
+                  <div>
+                    <label className="text-[10px] text-muted-foreground">Can reapply after (days)</label>
+                    <input type="number" min={1} value={reapplyDays} onChange={(e) => setReapplyDays(parseInt(e.target.value) || 30)}
+                      className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={doReject} className="flex-1 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium">Confirm Reject</button>
+                    <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="px-3 py-1.5 border border-border rounded text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div>
+        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><Users size={14} /> Affiliates</h3>
+        {affiliates.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No affiliates yet.</p>}
+        <div className="space-y-3">
+          {affiliates.map(a => {
+            const sales = salesByCode[a.code] || [];
+            const totalEarn = sales.reduce((s: number, x: any) => s + (x.commission || 0), 0);
+            const pending = sales.filter((x: any) => x.status === "pending").reduce((s: number, x: any) => s + (x.commission || 0), 0);
+            const u = users[a.id] || {};
+            return (
+              <div key={a.id} className="bg-muted rounded-xl p-3 text-xs">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <p className="font-semibold text-foreground">{u.name || u.email || a.id.slice(0, 8)}</p>
+                    <p className="text-muted-foreground">{u.email}</p>
+                    <p className="font-mono text-foreground mt-1">{a.code} · {Math.round((a.commissionRate || 0.1) * 100)}%</p>
+                  </div>
+                  <div className="text-right text-[10px] text-muted-foreground">
+                    <p>{clicksByCode[a.code] || 0} clicks</p>
+                    <p>{sales.length} sales</p>
+                    <p className="text-foreground font-semibold text-sm">₹{totalEarn.toFixed(0)}</p>
+                    <p>Pending: ₹{pending.toFixed(0)}</p>
+                  </div>
+                </div>
+                {sales.length > 0 && (
+                  <details className="mt-2">
+                    <summary className="text-[10px] text-muted-foreground cursor-pointer">View sales</summary>
+                    <div className="mt-2 space-y-1">
+                      {sales.map((s: any) => (
+                        <div key={s.id} className="flex justify-between items-center p-2 bg-background rounded">
+                          <div className="min-w-0">
+                            <p className="truncate text-foreground">{s.productTitle}</p>
+                            <p className="text-[10px] text-muted-foreground">₹{s.commission} · {s.status}</p>
+                          </div>
+                          {s.status === "pending" && (
+                            <button onClick={() => markSalePaid(a.code, s.id)} className="text-[10px] px-2 py-1 bg-primary text-primary-foreground rounded">Mark paid</button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default AdminPanel;
 
