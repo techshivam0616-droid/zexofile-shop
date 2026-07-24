@@ -326,6 +326,7 @@ const Index = () => {
       {legalPage && <LegalPages page={legalPage} onClose={() => setLegalPage(null)} />}
       <WhatsAppFloat />
       <FloatingChat />
+      <RoleSelectionModal open={!!user && needsRoleSelection && !authOpen} />
     </div>
   );
 };
