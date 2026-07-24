@@ -667,6 +667,23 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                 className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
             </div>
 
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-2"><MessageSquare size={14} /> Admin WhatsApp Number</label>
+                <input value={siteSettings.adminWhatsApp || ""} onChange={(e) => setSiteSettings({ ...siteSettings, adminWhatsApp: e.target.value })}
+                  placeholder="e.g. 919876543210 (with country code, no +)"
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <p className="text-[10px] text-muted-foreground mt-1">Used for seller verification submissions.</p>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-2"><DollarSign size={14} /> Affiliate Commission Rate (%)</label>
+                <input type="number" min="0" max="100" step="0.5"
+                  value={typeof siteSettings.affiliateCommissionRate === "number" ? siteSettings.affiliateCommissionRate * 100 : 10}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, affiliateCommissionRate: (parseFloat(e.target.value) || 0) / 100 })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+              </div>
+            </div>
+
             <div>
               <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-2"><Mail size={14} /> Contact Email</label>
               <input value={siteSettings.contactEmail || ""} onChange={(e) => setSiteSettings({ ...siteSettings, contactEmail: e.target.value })}
