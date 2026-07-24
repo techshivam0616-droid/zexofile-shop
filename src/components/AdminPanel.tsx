@@ -3,7 +3,7 @@ import {
   ArrowLeft, Plus, Trash2, Edit, Image, Sliders, Users, FolderOpen,
   Settings, Power, PowerOff, Save, Star, ChevronDown, ChevronUp,
   Globe, GraduationCap, Package, Eye, ToggleLeft, ToggleRight,
-  FileText, Shield, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
+  FileText, Shield, ShieldCheck, Mail, Type, AlignLeft, Tag, BarChart3, DollarSign,
   ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send, Link, Monitor, Cpu
 } from "lucide-react";
 import ImageUpload, { MultiImageUpload } from "@/components/ImageUpload";
