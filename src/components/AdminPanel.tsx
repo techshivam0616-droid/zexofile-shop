@@ -682,6 +682,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   onChange={(e) => setSiteSettings({ ...siteSettings, affiliateCommissionRate: (parseFloat(e.target.value) || 0) / 100 })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
               </div>
+              <div>
+                <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-2"><DollarSign size={14} /> Seller Platform Commission (%)</label>
+                <input type="number" min="0" max="100" step="0.5"
+                  value={typeof siteSettings.sellerCommissionRate === "number" ? siteSettings.sellerCommissionRate * 100 : 10}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, sellerCommissionRate: (parseFloat(e.target.value) || 0) / 100 })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <p className="text-[10px] text-muted-foreground mt-1">Deducted from seller's earnings on each sale. Rest goes to seller wallet.</p>
+              </div>
             </div>
 
             <div>
@@ -910,51 +918,97 @@ const AdminMessages: React.FC = () => {
 };
 
 const AdminRoles: React.FC = () => {
-  const [verifications, setVerifications] = useState<any[]>([]);
+  const [sub, setSub] = useState<"sellers" | "affiliates" | "withdrawals" | "affSales">("sellers");
+  const [sellerV, setSellerV] = useState<any[]>([]);
+  const [affV, setAffV] = useState<any[]>([]);
   const [affiliates, setAffiliates] = useState<any[]>([]);
   const [users, setUsers] = useState<Record<string, any>>({});
   const [salesByCode, setSalesByCode] = useState<Record<string, any[]>>({});
   const [clicksByCode, setClicksByCode] = useState<Record<string, number>>({});
-  const [rejectFor, setRejectFor] = useState<string | null>(null);
+  const [withdrawals, setWithdrawals] = useState<any[]>([]);
+  const [rejectFor, setRejectFor] = useState<{ kind: "seller" | "affiliate"; uid: string } | null>(null);
   const [rejectReason, setRejectReason] = useState("");
   const [reapplyDays, setReapplyDays] = useState(30);
+  const [wReject, setWReject] = useState<string | null>(null);
+  const [wRejectNote, setWRejectNote] = useState("");
+  const [wApprove, setWApprove] = useState<string | null>(null);
+  const [wTxn, setWTxn] = useState("");
 
   useEffect(() => {
     const u1 = onValue(ref(db, "sellerVerifications"), (s) => {
       const d = s.val();
-      setVerifications(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
+      setSellerV(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
     });
-    const u2 = onValue(ref(db, "affiliates"), (s) => {
+    const u2 = onValue(ref(db, "affiliateVerifications"), (s) => {
+      const d = s.val();
+      setAffV(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
+    });
+    const u3 = onValue(ref(db, "affiliates"), (s) => {
       const d = s.val();
       setAffiliates(d ? Object.entries(d).map(([id, v]: any) => ({ id, ...v })) : []);
     });
-    const u3 = onValue(ref(db, "users"), (s) => setUsers(s.val() || {}));
-    const u4 = onValue(ref(db, "affiliateSales"), (s) => {
+    const u4 = onValue(ref(db, "users"), (s) => setUsers(s.val() || {}));
+    const u5 = onValue(ref(db, "affiliateSales"), (s) => {
       const d = s.val() || {};
       const map: Record<string, any[]> = {};
       Object.entries(d).forEach(([code, arr]: any) => { map[code] = Object.entries(arr).map(([id, v]: any) => ({ id, ...v })); });
       setSalesByCode(map);
     });
-    const u5 = onValue(ref(db, "affiliateClicks"), (s) => {
+    const u6 = onValue(ref(db, "affiliateClicks"), (s) => {
       const d = s.val() || {};
       const map: Record<string, number> = {};
       Object.entries(d).forEach(([code, arr]: any) => { map[code] = Object.keys(arr).length; });
       setClicksByCode(map);
     });
-    return () => { u1(); u2(); u3(); u4(); u5(); };
+    const u7 = onValue(ref(db, "withdrawals"), (s) => {
+      const d = s.val() || {};
+      const list = Object.entries(d).map(([id, v]: any) => ({ id, ...v })).sort((a, b) => b.createdAt - a.createdAt);
+      setWithdrawals(list);
+    });
+    return () => { u1(); u2(); u3(); u4(); u5(); u6(); u7(); };
   }, []);
 
-  const approve = async (uid: string) => {
-    await update(ref(db, `sellerVerifications/${uid}`), { status: "approved", rejectionReason: null, reapplyAfter: null, reviewedAt: Date.now() });
-    await set(ref(db, `users/${uid}/sellerStatus`), "approved");
+  const approve = async (kind: "seller" | "affiliate", uid: string) => {
+    const table = kind === "seller" ? "sellerVerifications" : "affiliateVerifications";
+    const statusKey = kind === "seller" ? "sellerStatus" : "affiliateStatus";
+    await update(ref(db, `${table}/${uid}`), { status: "approved", rejectionReason: null, reapplyAfter: null, reviewedAt: Date.now() });
+    await set(ref(db, `users/${uid}/${statusKey}`), "approved");
   };
 
   const doReject = async () => {
     if (!rejectFor || !rejectReason.trim()) { alert("Reason required"); return; }
+    const { kind, uid } = rejectFor;
+    const table = kind === "seller" ? "sellerVerifications" : "affiliateVerifications";
+    const statusKey = kind === "seller" ? "sellerStatus" : "affiliateStatus";
     const reapplyAfter = Date.now() + reapplyDays * 24 * 60 * 60 * 1000;
-    await update(ref(db, `sellerVerifications/${rejectFor}`), { status: "rejected", rejectionReason: rejectReason.trim(), reapplyAfter, reviewedAt: Date.now() });
-    await set(ref(db, `users/${rejectFor}/sellerStatus`), "rejected");
+    await update(ref(db, `${table}/${uid}`), { status: "rejected", rejectionReason: rejectReason.trim(), reapplyAfter, reviewedAt: Date.now() });
+    await set(ref(db, `users/${uid}/${statusKey}`), "rejected");
     setRejectFor(null); setRejectReason(""); setReapplyDays(30);
+  };
+
+  const downloadPdf = async (kind: "seller" | "affiliate", v: any) => {
+    const { downloadVerificationPdf } = await import("@/lib/pdf");
+    await downloadVerificationPdf({
+      title: kind === "seller" ? "Seller Verification" : "Affiliate Verification",
+      uid: v.id, email: v.email, fullName: v.fullName, username: v.username,
+      mobile: v.mobile, dob: v.dob, idPhotoUrl: v.idPhotoUrl, status: v.status,
+      submittedAt: v.submittedAt, reviewedAt: v.reviewedAt,
+      rejectionReason: v.rejectionReason, reapplyAfter: v.reapplyAfter,
+    });
+  };
+
+  const approveWithdraw = async (w: any) => {
+    await update(ref(db, `withdrawals/${w.id}`), { status: "paid", processedAt: Date.now(), adminNote: wTxn ? `Txn: ${wTxn}` : "Paid" });
+    setWApprove(null); setWTxn("");
+  };
+
+  const rejectWithdraw = async (w: any) => {
+    if (!wRejectNote.trim()) { alert("Reason required"); return; }
+    // refund wallet
+    const { creditWallet } = await import("@/lib/wallet");
+    await creditWallet(w.uid, w.amount, { type: "refund_withdraw", refId: w.withdrawalId, note: `Withdrawal rejected: ${wRejectNote}` });
+    await update(ref(db, `withdrawals/${w.id}`), { status: "rejected", processedAt: Date.now(), adminNote: wRejectNote });
+    setWReject(null); setWRejectNote("");
   };
 
   const markSalePaid = async (code: string, saleId: string) => {
@@ -967,8 +1021,53 @@ const AdminRoles: React.FC = () => {
     return acc;
   }, {});
 
+  const renderVerifCard = (kind: "seller" | "affiliate", v: any) => (
+    <div key={v.id} className="bg-muted rounded-xl p-3">
+      <div className="flex gap-3">
+        {v.idPhotoUrl && <a href={v.idPhotoUrl} target="_blank" rel="noreferrer"><img src={v.idPhotoUrl} alt="ID" className="w-16 h-16 rounded-lg object-cover border border-border" /></a>}
+        <div className="flex-1 min-w-0 text-xs space-y-0.5">
+          <p className="font-semibold text-foreground">{v.fullName} <span className="text-muted-foreground">@{v.username}</span></p>
+          <p className="text-muted-foreground">📱 {v.mobile} · 🎂 {v.dob}</p>
+          <p className="text-muted-foreground truncate">{v.email}</p>
+          <p className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+            v.status === "approved" ? "bg-primary/20 text-foreground"
+            : v.status === "rejected" ? "bg-destructive/20 text-destructive"
+            : "bg-warning/20 text-foreground"
+          }`}>{v.status}</p>
+          {v.rejectionReason && <p className="text-destructive">Reason: {v.rejectionReason}</p>}
+        </div>
+      </div>
+      <div className="flex gap-2 mt-2">
+        <button onClick={() => downloadPdf(kind, v)} className="flex-1 py-1.5 border border-border text-foreground rounded text-xs font-medium flex items-center justify-center gap-1">
+          <FileText size={12} /> PDF
+        </button>
+        {v.status === "pending" && (
+          <>
+            <button onClick={() => approve(kind, v.id)} className="flex-1 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium flex items-center justify-center gap-1"><Check size={12} /> Approve</button>
+            <button onClick={() => setRejectFor({ kind, uid: v.id })} className="flex-1 py-1.5 border border-destructive text-destructive rounded text-xs font-medium flex items-center justify-center gap-1"><XIcon size={12} /> Reject</button>
+          </>
+        )}
+      </div>
+      {rejectFor?.kind === kind && rejectFor?.uid === v.id && (
+        <div className="mt-2 p-2 bg-background rounded-lg space-y-2">
+          <textarea placeholder="Reason for rejection" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+            className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
+          <div>
+            <label className="text-[10px] text-muted-foreground">Can reapply after (days)</label>
+            <input type="number" min={1} value={reapplyDays} onChange={(e) => setReapplyDays(parseInt(e.target.value) || 30)}
+              className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
+          </div>
+          <div className="flex gap-2">
+            <button onClick={doReject} className="flex-1 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium">Confirm Reject</button>
+            <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="px-3 py-1.5 border border-border rounded text-xs">Cancel</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       <div className="grid grid-cols-4 gap-2">
         {[
           { label: "Buyers", val: roleCounts.buyer || 0 },
@@ -983,56 +1082,97 @@ const AdminRoles: React.FC = () => {
         ))}
       </div>
 
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><ShieldCheck size={14} /> Seller Verifications</h3>
-        {verifications.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No verification requests yet.</p>}
+      <div className="flex gap-1 overflow-x-auto border-b">
+        {[
+          { key: "sellers", label: "Seller Verif" },
+          { key: "affiliates", label: "Affiliate Verif" },
+          { key: "withdrawals", label: "Withdrawals" },
+          { key: "affSales", label: "Aff Sales" },
+        ].map((t: any) => (
+          <button key={t.key} onClick={() => setSub(t.key)}
+            className={`px-3 py-2 text-xs font-medium whitespace-nowrap ${sub === t.key ? "text-foreground border-b-2 border-foreground" : "text-muted-foreground"}`}>
+            {t.label}
+          </button>
+        ))}
+      </div>
+
+      {sub === "sellers" && (
         <div className="space-y-3">
-          {verifications.map(v => (
-            <div key={v.id} className="bg-muted rounded-xl p-3">
-              <div className="flex gap-3">
-                {v.idPhotoUrl && <a href={v.idPhotoUrl} target="_blank" rel="noreferrer"><img src={v.idPhotoUrl} alt="ID" className="w-16 h-16 rounded-lg object-cover border border-border" /></a>}
-                <div className="flex-1 min-w-0 text-xs space-y-0.5">
-                  <p className="font-semibold text-foreground">{v.fullName} <span className="text-muted-foreground">@{v.username}</span></p>
-                  <p className="text-muted-foreground">📱 {v.mobile} · 🎂 {v.dob}</p>
-                  <p className="text-muted-foreground truncate">{v.email}</p>
-                  <p className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
-                    v.status === "approved" ? "bg-primary/20 text-foreground"
-                    : v.status === "rejected" ? "bg-destructive/20 text-destructive"
+          {sellerV.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No seller verifications yet.</p>}
+          {sellerV.map(v => renderVerifCard("seller", v))}
+        </div>
+      )}
+
+      {sub === "affiliates" && (
+        <div className="space-y-3">
+          {affV.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No affiliate verifications yet.</p>}
+          {affV.map(v => renderVerifCard("affiliate", v))}
+        </div>
+      )}
+
+      {sub === "withdrawals" && (
+        <div className="space-y-3">
+          {withdrawals.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No withdrawal requests yet.</p>}
+          {withdrawals.map(w => (
+            <div key={w.id} className="bg-muted rounded-xl p-3 text-xs space-y-1">
+              <div className="flex justify-between items-start">
+                <div className="min-w-0">
+                  <p className="font-mono font-semibold text-foreground">{w.withdrawalId}</p>
+                  <p className="text-muted-foreground">{w.role} · {w.name || w.email || w.uid.slice(0, 8)}</p>
+                  <p className="text-muted-foreground">{new Date(w.createdAt).toLocaleString()}</p>
+                </div>
+                <div className="text-right">
+                  <p className="font-bold text-foreground text-base">₹{w.amount}</p>
+                  <span className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-medium ${
+                    w.status === "paid" ? "bg-primary/20 text-foreground"
+                    : w.status === "rejected" ? "bg-destructive/20 text-destructive"
                     : "bg-warning/20 text-foreground"
-                  }`}>{v.status}</p>
-                  {v.rejectionReason && <p className="text-destructive">Reason: {v.rejectionReason}</p>}
+                  }`}>{w.status}</span>
                 </div>
               </div>
-              {v.status === "pending" && (
-                <div className="flex gap-2 mt-2">
-                  <button onClick={() => approve(v.id)} className="flex-1 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium flex items-center justify-center gap-1"><Check size={12} /> Approve</button>
-                  <button onClick={() => setRejectFor(v.id)} className="flex-1 py-1.5 border border-destructive text-destructive rounded text-xs font-medium flex items-center justify-center gap-1"><XIcon size={12} /> Reject</button>
+              {w.payment && (
+                <div className="bg-background rounded p-2 text-[11px] space-y-0.5">
+                  <p className="text-foreground">{w.payment.firstName} {w.payment.lastName} (@{w.payment.username})</p>
+                  <p className="text-muted-foreground">📱 {w.payment.mobile}</p>
+                  <p className="text-muted-foreground">🏠 {w.payment.address}</p>
+                  <p className="text-foreground font-mono">UPI: {w.payment.upi}</p>
                 </div>
               )}
-              {rejectFor === v.id && (
-                <div className="mt-2 p-2 bg-background rounded-lg space-y-2">
-                  <textarea placeholder="Reason for rejection" value={rejectReason} onChange={(e) => setRejectReason(e.target.value)}
+              {w.adminNote && <p className="text-[10px] text-muted-foreground">Admin: {w.adminNote}</p>}
+              {w.status === "pending" && (
+                <div className="flex gap-2 pt-1">
+                  <button onClick={() => setWApprove(w.id)} className="flex-1 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium">Approve</button>
+                  <button onClick={() => setWReject(w.id)} className="flex-1 py-1.5 border border-destructive text-destructive rounded text-xs font-medium">Reject</button>
+                </div>
+              )}
+              {wApprove === w.id && (
+                <div className="bg-background rounded-lg p-2 space-y-2 mt-1">
+                  <input placeholder="Transaction / UTR (optional)" value={wTxn} onChange={(e) => setWTxn(e.target.value)}
                     className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
-                  <div>
-                    <label className="text-[10px] text-muted-foreground">Can reapply after (days)</label>
-                    <input type="number" min={1} value={reapplyDays} onChange={(e) => setReapplyDays(parseInt(e.target.value) || 30)}
-                      className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
-                  </div>
                   <div className="flex gap-2">
-                    <button onClick={doReject} className="flex-1 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium">Confirm Reject</button>
-                    <button onClick={() => { setRejectFor(null); setRejectReason(""); }} className="px-3 py-1.5 border border-border rounded text-xs">Cancel</button>
+                    <button onClick={() => approveWithdraw(w)} className="flex-1 py-1.5 bg-primary text-primary-foreground rounded text-xs font-medium">Confirm Paid</button>
+                    <button onClick={() => { setWApprove(null); setWTxn(""); }} className="px-3 py-1.5 border border-border rounded text-xs">Cancel</button>
+                  </div>
+                </div>
+              )}
+              {wReject === w.id && (
+                <div className="bg-background rounded-lg p-2 space-y-2 mt-1">
+                  <textarea placeholder="Rejection reason (amount will be refunded)" value={wRejectNote} onChange={(e) => setWRejectNote(e.target.value)}
+                    className="w-full px-2 py-1.5 border border-border rounded text-xs bg-background text-foreground outline-none" />
+                  <div className="flex gap-2">
+                    <button onClick={() => rejectWithdraw(w)} className="flex-1 py-1.5 bg-destructive text-destructive-foreground rounded text-xs font-medium">Confirm Reject & Refund</button>
+                    <button onClick={() => { setWReject(null); setWRejectNote(""); }} className="px-3 py-1.5 border border-border rounded text-xs">Cancel</button>
                   </div>
                 </div>
               )}
             </div>
           ))}
         </div>
-      </div>
+      )}
 
-      <div>
-        <h3 className="text-sm font-semibold text-foreground mb-2 flex items-center gap-2"><Users size={14} /> Affiliates</h3>
-        {affiliates.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No affiliates yet.</p>}
+      {sub === "affSales" && (
         <div className="space-y-3">
+          {affiliates.length === 0 && <p className="text-xs text-muted-foreground py-4 text-center">No affiliates yet.</p>}
           {affiliates.map(a => {
             const sales = salesByCode[a.code] || [];
             const totalEarn = sales.reduce((s: number, x: any) => s + (x.commission || 0), 0);
@@ -1075,10 +1215,11 @@ const AdminRoles: React.FC = () => {
             );
           })}
         </div>
-      </div>
+      )}
     </div>
   );
 };
 
 export default AdminPanel;
+
 

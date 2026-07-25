@@ -22,6 +22,8 @@ import WhatsAppFloat from "@/components/WhatsAppFloat";
 import RoleSelectionModal from "@/components/RoleSelectionModal";
 import { useUserRole } from "@/hooks/useUserRole";
 import { captureRefFromUrl, logAffiliateClick, recordAffiliateSale } from "@/lib/affiliate";
+import { creditWallet } from "@/lib/wallet";
+import { get as dbGet } from "firebase/database";
 import { GraduationCap, Globe, Wrench, Search, CreditCard, Infinity, Gem, Zap, Palette, MessageSquare, Mail, ShieldCheck, FileText, HelpCircle, BookOpen, Award } from "lucide-react";
 import { toast } from "sonner";
 
@@ -109,6 +111,19 @@ const Index = () => {
             deliveryLink: (product as any).deliveryLink || product.previewLink || "",
           });
           setCart(cart.filter(c => c.id !== product.id));
+          const amountPaid = finalPrice / 100;
+          // Seller wallet credit (if this product belongs to a seller)
+          const sellerUid = (product as any).sellerUid;
+          if (sellerUid) {
+            const rateSnap = await dbGet(ref(db, "siteSettings/sellerCommissionRate"));
+            const platformRate = typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
+            const sellerEarn = Math.round(amountPaid * (1 - platformRate) * 100) / 100;
+            await creditWallet(sellerUid, sellerEarn, {
+              type: "credit_sale",
+              refId: response.razorpay_payment_id,
+              note: `Sale · ${product.title}`,
+            });
+          }
           const refCode = localStorage.getItem("affiliateRef");
           if (refCode) {
             await recordAffiliateSale({
@@ -116,7 +131,7 @@ const Index = () => {
               productId: product.id,
               productTitle: product.title,
               buyerUid: user.uid,
-              amount: finalPrice / 100,
+              amount: amountPaid,
               paymentId: response.razorpay_payment_id,
             });
           }

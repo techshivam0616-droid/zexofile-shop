@@ -1,5 +1,6 @@
 import { ref, push, get, set } from "firebase/database";
 import { db } from "@/lib/firebase";
+import { creditWallet } from "@/lib/wallet";
 
 const ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
 
@@ -68,7 +69,7 @@ export const recordAffiliateSale = async (params: {
     const affSnap = await get(ref(db, `affiliates/${affUid}`));
     const rate = affSnap.val()?.commissionRate ?? 0.1;
     const commission = Math.round(params.amount * rate * 100) / 100;
-    await push(ref(db, `affiliateSales/${params.code}`), {
+    const saleRef = await push(ref(db, `affiliateSales/${params.code}`), {
       affUid,
       productId: params.productId,
       productTitle: params.productTitle,
@@ -79,6 +80,12 @@ export const recordAffiliateSale = async (params: {
       paymentId: params.paymentId,
       status: "pending",
       createdAt: Date.now(),
+    });
+    // credit affiliate wallet immediately
+    await creditWallet(affUid, commission, {
+      type: "credit_affiliate",
+      refId: saleRef.key || params.paymentId,
+      note: `Affiliate commission · ${params.productTitle}`,
     });
   } catch (e) {
     console.error("affiliate sale record failed", e);
