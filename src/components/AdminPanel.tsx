@@ -682,6 +682,14 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
                   onChange={(e) => setSiteSettings({ ...siteSettings, affiliateCommissionRate: (parseFloat(e.target.value) || 0) / 100 })}
                   className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
               </div>
+              <div>
+                <label className="text-sm font-medium text-foreground flex items-center gap-1 mb-2"><DollarSign size={14} /> Seller Platform Commission (%)</label>
+                <input type="number" min="0" max="100" step="0.5"
+                  value={typeof siteSettings.sellerCommissionRate === "number" ? siteSettings.sellerCommissionRate * 100 : 10}
+                  onChange={(e) => setSiteSettings({ ...siteSettings, sellerCommissionRate: (parseFloat(e.target.value) || 0) / 100 })}
+                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <p className="text-[10px] text-muted-foreground mt-1">Deducted from seller's earnings on each sale. Rest goes to seller wallet.</p>
+              </div>
             </div>
 
             <div>
