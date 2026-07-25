@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { X, Send, ShieldCheck, Clock, XCircle, CheckCircle2 } from "lucide-react";
-import { ref, set, get, onValue } from "firebase/database";
+import { ref, set, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
 import ImageUpload from "./ImageUpload";
@@ -12,13 +12,11 @@ const SellerVerificationForm: React.FC<Props> = ({ open, onClose }) => {
   const { user } = useAuth();
   const [form, setForm] = useState({ fullName: "", username: "", mobile: "", dob: "", idPhotoUrl: "" });
   const [existing, setExisting] = useState<any>(null);
-  const [adminWa, setAdminWa] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     if (!user) return;
     const unsub = onValue(ref(db, `sellerVerifications/${user.uid}`), (snap) => setExisting(snap.val()));
-    get(ref(db, "siteSettings/adminWhatsApp")).then(s => setAdminWa(s.val() || ""));
     return () => unsub();
   }, [user]);
 
@@ -39,30 +37,12 @@ const SellerVerificationForm: React.FC<Props> = ({ open, onClose }) => {
     setSubmitting(true);
     try {
       const payload = {
-        ...form,
-        uid: user.uid,
-        email: user.email,
-        status: "pending",
-        submittedAt: Date.now(),
-        rejectionReason: null,
-        reapplyAfter: null,
+        ...form, uid: user.uid, email: user.email,
+        status: "pending", submittedAt: Date.now(),
+        rejectionReason: null, reapplyAfter: null,
       };
       await set(ref(db, `sellerVerifications/${user.uid}`), payload);
       await set(ref(db, `users/${user.uid}/sellerStatus`), "pending");
-
-      const msg = `*New Seller Verification*%0A%0A` +
-        `Name: ${form.fullName}%0A` +
-        `Username: ${form.username}%0A` +
-        `Mobile: ${form.mobile}%0A` +
-        `DOB: ${form.dob}%0A` +
-        `Email: ${user.email}%0A` +
-        `UID: ${user.uid}%0A` +
-        `ID Photo: ${form.idPhotoUrl}`;
-
-      if (adminWa) {
-        const num = adminWa.replace(/[^\d]/g, "");
-        window.open(`https://wa.me/${num}?text=${msg}`, "_blank");
-      }
       toast.success("Verification submitted! Admin will review shortly.");
       onClose();
     } catch (e: any) {
@@ -71,11 +51,14 @@ const SellerVerificationForm: React.FC<Props> = ({ open, onClose }) => {
     setSubmitting(false);
   };
 
+  const inputCls = "w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none";
+
   return (
     <div className="fixed inset-0 z-[105] bg-foreground/50 flex items-center justify-center p-4 overflow-y-auto" onClick={onClose}>
       <div className="bg-background rounded-2xl w-full max-w-md p-6 relative my-8" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} className="absolute top-4 right-4 text-muted-foreground"><X size={20} /></button>
         <div className="flex items-center gap-2 mb-2"><ShieldCheck size={20} /><h2 className="text-lg font-bold text-foreground">Seller Verification</h2></div>
+        <p className="text-xs text-muted-foreground mb-3">Submit your details. Admin will review and approve from the admin panel.</p>
 
         {existing?.status === "pending" && (
           <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 mb-4 flex items-start gap-2">
@@ -110,25 +93,20 @@ const SellerVerificationForm: React.FC<Props> = ({ open, onClose }) => {
         {(existing?.status !== "approved") && (
           <form onSubmit={handleSubmit} className="space-y-3">
             <fieldset disabled={!canReapply} className="space-y-3 disabled:opacity-50">
-              <input placeholder="Full Name (as on ID)" required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })}
-                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-              <input placeholder="Username" required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })}
-                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
-              <input placeholder="Mobile Number" required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })}
-                className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+              <input placeholder="Full Name (as on ID)" required value={form.fullName} onChange={(e) => setForm({ ...form, fullName: e.target.value })} className={inputCls} />
+              <input placeholder="Username" required value={form.username} onChange={(e) => setForm({ ...form, username: e.target.value })} className={inputCls} />
+              <input placeholder="Mobile Number" required value={form.mobile} onChange={(e) => setForm({ ...form, mobile: e.target.value })} className={inputCls} />
               <div>
                 <label className="text-xs text-muted-foreground">Date of Birth</label>
-                <input type="date" required value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })}
-                  className="w-full px-3 py-2.5 border border-border rounded-lg text-sm bg-background text-foreground outline-none" />
+                <input type="date" required value={form.dob} onChange={(e) => setForm({ ...form, dob: e.target.value })} className={inputCls} />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">ID Card Photo (name & mobile must match)</label>
                 <ImageUpload value={form.idPhotoUrl} onChange={(url) => setForm({ ...form, idPhotoUrl: url })} placeholder="Upload ID card" />
               </div>
-              {!adminWa && <p className="text-xs text-warning">Admin WhatsApp number not configured yet. Submission will still be saved for review.</p>}
               <button type="submit" disabled={submitting || !canReapply}
                 className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2 disabled:opacity-50">
-                <Send size={14} /> {submitting ? "Submitting..." : adminWa ? "Submit & Send on WhatsApp" : "Submit for Verification"}
+                <Send size={14} /> {submitting ? "Submitting..." : "Submit for Verification"}
               </button>
             </fieldset>
           </form>
