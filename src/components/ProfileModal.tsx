@@ -1,11 +1,13 @@
 import React, { useState, useEffect } from "react";
-import { X, LogOut, Shield, ShieldCheck, Store, Share2, ShoppingBag, Clock, CheckCircle2, XCircle } from "lucide-react";
+import { X, LogOut, Shield, ShieldCheck, Store, Share2, ShoppingBag, Clock, CheckCircle2, XCircle, CreditCard, Wallet } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ref, onValue } from "firebase/database";
 import { db } from "@/lib/firebase";
 import AdminPanel from "./AdminPanel";
 import SellerVerificationForm from "./SellerVerificationForm";
 import AffiliateDashboard from "./AffiliateDashboard";
+import PaymentSettingsForm from "./PaymentSettingsForm";
+import WalletPanel from "./WalletPanel";
 
 interface ProfileModalProps {
   open: boolean;
@@ -25,6 +27,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
   const [showAdmin, setShowAdmin] = useState(false);
   const [userData, setUserData] = useState<any>(null);
   const [showVerify, setShowVerify] = useState(false);
+  const [showPay, setShowPay] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -37,16 +40,16 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
   }, [user]);
 
   if (!open || !user) return null;
-
-  if (showAdmin && isAdmin) {
-    return <AdminPanel onClose={() => setShowAdmin(false)} />;
-  }
+  if (showAdmin && isAdmin) return <AdminPanel onClose={() => setShowAdmin(false)} />;
 
   const role = userData?.role;
   const sellerStatus = userData?.sellerStatus;
+  const affiliateStatus = userData?.affiliateStatus;
 
   const roleLabel = role === "seller" ? "Seller" : role === "affiliate" ? "Affiliate" : role === "buyer" ? "Buyer" : "";
   const roleIcon = role === "seller" ? <Store size={12} /> : role === "affiliate" ? <Share2 size={12} /> : <ShoppingBag size={12} />;
+
+  const showWallet = (role === "seller" && sellerStatus === "approved") || (role === "affiliate" && affiliateStatus === "approved");
 
   return (
     <>
@@ -106,6 +109,22 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
             </div>
           )}
 
+          {(role === "seller" || role === "affiliate") && (
+            <div className="mb-6 space-y-2">
+              <button onClick={() => setShowPay(true)}
+                className="w-full py-3 border border-border rounded-lg font-medium text-sm flex items-center justify-center gap-2 text-foreground hover:bg-muted transition-colors">
+                <CreditCard size={14} /> Payment Settings
+              </button>
+            </div>
+          )}
+
+          {showWallet && (
+            <div className="mb-6">
+              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Wallet size={14} /> Wallet</h3>
+              <WalletPanel role={role as "seller" | "affiliate"} onOpenPaymentSettings={() => setShowPay(true)} />
+            </div>
+          )}
+
           <div className="mb-6">
             <h3 className="text-sm font-semibold text-foreground mb-3">Purchase History</h3>
             {purchases.length === 0 ? (
@@ -132,6 +151,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
         </div>
       </div>
       <SellerVerificationForm open={showVerify} onClose={() => setShowVerify(false)} />
+      <PaymentSettingsForm open={showPay} onClose={() => setShowPay(false)} />
     </>
   );
 };
