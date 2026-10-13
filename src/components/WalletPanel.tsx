@@ -7,7 +7,7 @@ import { debitWallet, generateWithdrawalId, getPaymentSettings } from "@/lib/wal
 import { toast } from "sonner";
 
 interface Props {
-  role: "seller" | "affiliate";
+  role: "seller" | "affiliate" | "store";
   onOpenPaymentSettings: () => void;
 }
 
@@ -41,10 +41,14 @@ const WalletPanel: React.FC<Props> = ({ role, onOpenPaymentSettings }) => {
 
   if (!user) return null;
 
+  const now = Date.now();
+  const locked = ledger.filter((l) => l.releaseAt && l.releaseAt > now && l.amount > 0).reduce((a, l) => a + l.amount, 0);
+  const available = Math.max(0, balance - locked);
+
   const request = async () => {
     const amt = parseFloat(amount);
     if (!amt || amt < MIN_WITHDRAW) { toast.error(`Minimum withdrawal is ₹${MIN_WITHDRAW}`); return; }
-    if (amt > balance) { toast.error("Insufficient balance"); return; }
+    if (amt > available) { toast.error("Amount exceeds available balance"); return; }
     const pay = await getPaymentSettings(user.uid);
     if (!pay?.upi) { toast.error("Add payment settings first"); onOpenPaymentSettings(); return; }
     setBusy(true);
@@ -71,6 +75,7 @@ const WalletPanel: React.FC<Props> = ({ role, onOpenPaymentSettings }) => {
       <div className="bg-muted rounded-xl p-4">
         <div className="flex items-center gap-2 mb-2"><Wallet size={16} /><p className="text-xs text-muted-foreground">Wallet balance</p></div>
         <p className="text-3xl font-bold text-foreground">₹{balance.toFixed(2)}</p>
+        <p className="text-[11px] text-muted-foreground mt-1">Available to withdraw: ₹{available.toFixed(2)}{locked > 0 ? ` · On hold: ₹${locked.toFixed(2)}` : ""}</p>
       </div>
 
       <div className="bg-muted rounded-xl p-3 space-y-2">

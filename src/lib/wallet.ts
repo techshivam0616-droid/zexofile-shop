@@ -1,18 +1,19 @@
 import { ref, get, set, push, runTransaction } from "firebase/database";
 import { db } from "@/lib/firebase";
 
-export type LedgerType = "credit_sale" | "credit_affiliate" | "debit_withdraw" | "refund_withdraw";
+export type LedgerType = "credit_sale" | "credit_store_sale" | "credit_affiliate" | "debit_withdraw" | "refund_withdraw";
 
 export const addLedger = async (uid: string, entry: {
   type: LedgerType;
   amount: number;
   refId?: string;
   note?: string;
+  releaseAt?: number;
 }) => {
   await push(ref(db, `walletLedger/${uid}`), { ...entry, ts: Date.now() });
 };
 
-export const creditWallet = async (uid: string, amount: number, entry: { type: LedgerType; refId?: string; note?: string }) => {
+export const creditWallet = async (uid: string, amount: number, entry: { type: LedgerType; refId?: string; note?: string; releaseAt?: number }) => {
   if (!uid || !amount) return;
   await runTransaction(ref(db, `users/${uid}/wallet/balance`), (bal) => (bal || 0) + amount);
   await addLedger(uid, { ...entry, amount });
