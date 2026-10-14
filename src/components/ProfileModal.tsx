@@ -8,6 +8,7 @@ import SellerVerificationForm from "./SellerVerificationForm";
 import AffiliateDashboard from "./AffiliateDashboard";
 import PaymentSettingsForm from "./PaymentSettingsForm";
 import WalletPanel from "./WalletPanel";
+import StoreDashboard from "./StoreDashboard";
 
 interface ProfileModalProps {
   open: boolean;
@@ -28,6 +29,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
   const [userData, setUserData] = useState<any>(null);
   const [showVerify, setShowVerify] = useState(false);
   const [showPay, setShowPay] = useState(false);
+  const [showStore, setShowStore] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -41,6 +43,7 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
 
   if (!open || !user) return null;
   if (showAdmin && isAdmin) return <AdminPanel onClose={() => setShowAdmin(false)} />;
+  if (showStore) return <StoreDashboard onClose={() => setShowStore(false)} />;
 
   const role = userData?.role;
   const sellerStatus = userData?.sellerStatus;
@@ -81,8 +84,14 @@ const ProfileModal: React.FC<ProfileModalProps> = ({ open, onClose }) => {
             <div className="mb-6">
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><Store size={14} /> Seller Zone</h3>
               {sellerStatus === "approved" ? (
-                <div className="bg-primary/10 rounded-lg p-3 flex items-center gap-2 text-sm">
-                  <CheckCircle2 size={16} /> <span className="text-foreground">You are a verified seller</span>
+                <div className="space-y-2">
+                  <div className="bg-primary/10 rounded-lg p-3 flex items-center gap-2 text-sm">
+                    <CheckCircle2 size={16} /> <span className="text-foreground">You are a verified seller</span>
+                  </div>
+                  <button onClick={() => setShowStore(true)}
+                    className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2">
+                    <Store size={14} /> {userData?.storeSlug ? "Manage My Store" : "Create My Store"}
+                  </button>
                 </div>
               ) : sellerStatus === "pending" ? (
                 <div className="bg-warning/10 border border-warning/30 rounded-lg p-3 flex items-center gap-2 text-sm">

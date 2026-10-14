@@ -11,6 +11,7 @@ import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";
 import { Product } from "@/components/ProductGrid";
+import AdminStores from "@/components/AdminStores";
 
 interface AdminPanelProps {
   onClose: () => void;
@@ -43,7 +44,7 @@ interface Coupon {
   active: boolean;
 }
 
-type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "messages" | "roles" | "settings";
+type TabKey = "dashboard" | "products" | "categories" | "sliders" | "coupons" | "projects" | "users" | "feedbacks" | "messages" | "roles" | "stores" | "settings";
 
 const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
   const [tab, setTab] = useState<TabKey>("dashboard");
@@ -283,6 +284,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
     { key: "feedbacks", label: "Feedback", icon: <MessageSquare size={14} /> },
     { key: "messages", label: "Messages", icon: <MessageSquare size={14} /> },
     { key: "roles", label: "Roles", icon: <Users size={14} /> },
+    { key: "stores", label: "Stores", icon: <Globe size={14} /> },
     { key: "settings", label: "Settings", icon: <Settings size={14} /> },
   ];
 
@@ -641,6 +643,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
 
         {/* === ROLES TAB === */}
         {tab === "roles" && <AdminRoles />}
+        {tab === "stores" && <AdminStores />}
 
         {/* === SETTINGS TAB === */}
         {tab === "settings" && (
