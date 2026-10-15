@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { ref, onValue, push, update, remove, set } from "firebase/database";
 import { db } from "@/lib/firebase";
-import { Store, StorePlan, PERIOD_DAYS, storeUrl } from "@/lib/stores";
+import { Store, StorePlan, PERIOD_DAYS, PLAN_FLAGS, storeUrl } from "@/lib/stores";
 import { Plus, Trash2, ExternalLink, Power, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -108,21 +108,32 @@ const StoreRow: React.FC<{ s: Store; open: boolean; toggle: () => void }> = ({ s
   );
 };
 
-const emptyPlan = { name: "", period: "monthly" as StorePlan["period"], price: "", features: "" };
+const emptyPlan = { name: "", period: "monthly" as StorePlan["period"], price: "", features: "", maxProducts: "10", commissionRate: "10", flags: {} as Record<string, boolean>, popular: false };
 
 const Plans = () => {
   const [plans, setPlans] = useState<StorePlan[]>([]);
   const [f, setF] = useState<any>(emptyPlan);
+  const [editId, setEditId] = useState<string | null>(null);
   useEffect(() => onValue(ref(db, "storePlans"), (s) => setPlans(Object.entries(s.val() || {}).map(([id, v]: any) => ({ id, ...v })))), []);
-  const add = async () => {
+  const save = async () => {
     if (!f.name || !f.price) return toast.error("Name and price required");
-    await push(ref(db, "storePlans"), { name: f.name, period: f.period, days: PERIOD_DAYS[f.period as keyof typeof PERIOD_DAYS], price: Number(f.price), features: f.features, active: true });
-    setF(emptyPlan); toast.success("Plan added");
+    const data = {
+      name: f.name, period: f.period, days: PERIOD_DAYS[f.period as keyof typeof PERIOD_DAYS], price: Number(f.price), features: f.features,
+      maxProducts: parseInt(f.maxProducts) || 0, commissionRate: parseFloat(f.commissionRate) || 0, flags: f.flags || {}, popular: !!f.popular,
+    };
+    if (editId) await update(ref(db, `storePlans/${editId}`), data);
+    else await push(ref(db, "storePlans"), { ...data, active: true });
+    setF(emptyPlan); setEditId(null); toast.success(editId ? "Plan updated" : "Plan added");
+  };
+  const edit = (p: StorePlan) => {
+    setEditId(p.id);
+    setF({ name: p.name, period: p.period, price: String(p.price), features: p.features || "", maxProducts: String(p.maxProducts ?? 0), commissionRate: String(p.commissionRate ?? 10), flags: p.flags || {}, popular: !!p.popular });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   };
   return (
     <div className="space-y-3">
       <div className="p-3 border border-border rounded-lg space-y-2">
-        <p className="text-sm font-semibold text-foreground">New plan</p>
+        <p className="text-sm font-semibold text-foreground">{editId ? "Edit plan" : "New plan"}</p>
         <input placeholder="Plan name (e.g. Starter)" value={f.name} onChange={(e) => setF({ ...f, name: e.target.value })} className={inputCls} />
         <div className="grid grid-cols-2 gap-2">
           <select value={f.period} onChange={(e) => setF({ ...f, period: e.target.value })} className={inputCls}>
@@ -130,15 +141,36 @@ const Plans = () => {
           </select>
           <input type="number" placeholder="Price ₹" value={f.price} onChange={(e) => setF({ ...f, price: e.target.value })} className={inputCls} />
         </div>
-        <textarea placeholder="Features (one per line)" value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} className={inputCls + " min-h-[70px]"} />
-        <button onClick={add} className="w-full py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-1"><Plus size={14} /> Add plan</button>
+        <div className="grid grid-cols-2 gap-2">
+          <label className="text-[11px] text-muted-foreground">Max products (0 = unlimited)
+            <input type="number" value={f.maxProducts} onChange={(e) => setF({ ...f, maxProducts: e.target.value })} className={inputCls + " mt-1"} />
+          </label>
+          <label className="text-[11px] text-muted-foreground">Platform fee per sale (%)
+            <input type="number" value={f.commissionRate} onChange={(e) => setF({ ...f, commissionRate: e.target.value })} className={inputCls + " mt-1"} />
+          </label>
+        </div>
+        <p className="text-xs font-medium text-foreground pt-1">Features included</p>
+        <div className="grid grid-cols-2 gap-1.5">
+          {PLAN_FLAGS.map((x) => (
+            <label key={x.k} className="flex items-center gap-2 text-xs text-foreground p-2 border border-border rounded-md cursor-pointer">
+              <input type="checkbox" checked={!!f.flags?.[x.k]} onChange={(e) => setF({ ...f, flags: { ...f.flags, [x.k]: e.target.checked } })} /> {x.l}
+            </label>
+          ))}
+        </div>
+        <label className="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" checked={f.popular} onChange={(e) => setF({ ...f, popular: e.target.checked })} /> Mark as "Most popular"</label>
+        <textarea placeholder="Extra features (one per line, optional)" value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} className={inputCls + " min-h-[60px]"} />
+        <div className="flex gap-2">
+          {editId && <button onClick={() => { setEditId(null); setF(emptyPlan); }} className="flex-1 py-2.5 border border-border rounded-lg text-sm">Cancel</button>}
+          <button onClick={save} className="flex-1 py-2.5 bg-primary text-primary-foreground rounded-lg text-sm font-medium flex items-center justify-center gap-1">{editId ? <Save size={14} /> : <Plus size={14} />} {editId ? "Save plan" : "Add plan"}</button>
+        </div>
       </div>
       {plans.map((p) => (
         <div key={p.id} className="p-3 border border-border rounded-lg flex items-center gap-2">
           <div className="flex-1">
-            <p className="text-sm font-medium text-foreground">{p.name} · ₹{p.price}</p>
-            <p className="text-[11px] text-muted-foreground capitalize">{p.period} ({p.days} days){p.active === false ? " · disabled" : ""}</p>
+            <p className="text-sm font-medium text-foreground">{p.name} · ₹{p.price}{p.popular ? " · ★ Popular" : ""}</p>
+            <p className="text-[11px] text-muted-foreground capitalize">{p.period} ({p.days} days) · {p.maxProducts ? `${p.maxProducts} products` : "Unlimited products"} · {p.commissionRate ?? "default"}% fee{p.active === false ? " · disabled" : ""}</p>
           </div>
+          <button onClick={() => edit(p)} className="text-xs underline text-muted-foreground">Edit</button>
           <button onClick={() => update(ref(db, `storePlans/${p.id}`), { active: p.active === false })} className="text-xs underline text-muted-foreground">{p.active === false ? "Enable" : "Disable"}</button>
           <button onClick={() => confirm("Delete plan?") && remove(ref(db, `storePlans/${p.id}`))} className="text-destructive"><Trash2 size={14} /></button>
         </div>
