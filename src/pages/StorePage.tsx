@@ -70,7 +70,7 @@ const StorePage = () => {
             const [rateSnap, holdSnap] = await Promise.all([
               get(ref(db, "siteSettings/storeCommissionRate")), get(ref(db, "siteSettings/payoutHoldDays")),
             ]);
-            const rate = typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
+            const rate = typeof store.planCommissionRate === "number" ? store.planCommissionRate / 100 : typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
             const hold = typeof holdSnap.val() === "number" ? holdSnap.val() : 7;
             const earn = Math.round(p.price * (1 - rate) * 100) / 100;
             await creditWallet(store.ownerUid, earn, {
@@ -109,15 +109,16 @@ const StorePage = () => {
         {store.banner && <img src={store.banner} alt="" className="absolute inset-0 w-full h-full object-cover" />}
         <div className={`absolute inset-0 ${store.banner ? "bg-gradient-to-b from-foreground/40 via-foreground/60 to-foreground/90" : ""}`}
           style={store.banner ? undefined : { background: `radial-gradient(ellipse at top, ${accent}33, transparent 70%)` }} />
-        <div className={`relative max-w-6xl mx-auto px-4 ${theme === "elegant" ? "text-center py-28" : "py-24 md:py-32"}`}>
+        <div aria-hidden className="absolute -top-24 -right-24 w-80 h-80 rounded-full blur-3xl opacity-30 animate-float" style={{ background: accent }} />
+        <div className={`relative max-w-6xl mx-auto px-4 animate-fade-in ${theme === "elegant" ? "text-center py-28" : "py-24 md:py-32"}`}>
           <span className={`inline-flex items-center gap-1.5 text-xs font-medium px-3 py-1 rounded-full border ${store.banner ? "border-background/30 text-background" : dark ? "border-background/20" : "border-border"}`}>
-            <Sparkles size={12} /> Official Store
+            <Sparkles size={12} /> {store.planFlags?.verifiedBadge ? "Verified Store" : "Official Store"}
           </span>
           <h1 className={`mt-5 font-bold ${h} ${theme === "bold" ? "text-5xl md:text-7xl" : "text-4xl md:text-6xl"} ${store.banner ? "text-background" : ""} max-w-3xl ${theme === "elegant" ? "mx-auto" : ""}`}>
             {store.name}
           </h1>
           {store.tagline && <p className={`mt-4 text-base md:text-lg max-w-xl ${theme === "elegant" ? "mx-auto" : ""} ${store.banner ? "text-background/80" : muted}`}>{store.tagline}</p>}
-          <a href="#products" className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm shadow-lg" style={{ background: accent, color: "#fff" }}>
+          <a href="#products" className="mt-8 inline-flex items-center gap-2 px-6 py-3 rounded-full font-medium text-sm shadow-lg transition-transform hover:scale-105 active:scale-95" style={{ background: accent, color: "#fff" }}>
             Explore products <ArrowRight size={16} />
           </a>
         </div>
@@ -147,9 +148,11 @@ const StorePage = () => {
           <p className={`text-center py-16 ${muted}`}>No products yet.</p>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {shown.map((p) => (
-              <button key={p.id} onClick={() => setSelected(p)} className={`group text-left rounded-2xl border overflow-hidden transition-all hover:-translate-y-1 hover:shadow-xl ${card}`}>
-                <div className="aspect-[4/3] overflow-hidden bg-muted">
+            {shown.map((p, i) => (
+              <button key={p.id} onClick={() => setSelected(p)} style={{ animationDelay: `${Math.min(i, 12) * 60}ms` }}
+                className={`group text-left rounded-2xl border overflow-hidden opacity-0 animate-fade-in transition-all duration-300 hover:-translate-y-1.5 hover:shadow-2xl ${card}`}>
+                <div className="relative aspect-[4/3] overflow-hidden bg-muted">
+                  {p.originalPrice && p.originalPrice > p.price && <span className="absolute top-2 left-2 z-10 text-[10px] font-bold px-2 py-0.5 rounded-full" style={{ background: accent, color: "#fff" }}>-{Math.round((1 - p.price / p.originalPrice) * 100)}%</span>}
                   {p.imageUrl && <img src={p.imageUrl} alt={p.title} loading="lazy" className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />}
                 </div>
                 <div className="p-4">
@@ -190,8 +193,8 @@ const StorePage = () => {
 
       {/* Product sheet */}
       {selected && (
-        <div className="fixed inset-0 z-50 bg-foreground/60 flex items-end md:items-center justify-center" onClick={() => setSelected(null)}>
-          <div className="bg-background text-foreground w-full md:max-w-2xl md:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <div className="fixed inset-0 z-50 bg-foreground/60 backdrop-blur-sm animate-in fade-in duration-200 flex items-end md:items-center justify-center" onClick={() => setSelected(null)}>
+          <div className="bg-background text-foreground w-full md:max-w-2xl md:rounded-3xl rounded-t-3xl max-h-[92vh] overflow-y-auto animate-in slide-in-from-bottom-8 duration-300" onClick={(e) => e.stopPropagation()}>
             <div className="relative">
               {selected.imageUrl && <img src={selected.imageUrl} alt={selected.title} className="w-full aspect-video object-cover md:rounded-t-3xl rounded-t-3xl" />}
               <button onClick={() => setSelected(null)} className="absolute top-3 right-3 w-9 h-9 rounded-full bg-background/90 flex items-center justify-center"><X size={18} /></button>
