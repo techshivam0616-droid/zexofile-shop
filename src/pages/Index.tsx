@@ -27,7 +27,7 @@ import { get as dbGet } from "firebase/database";
 import { GraduationCap, Globe, Wrench, Search, CreditCard, Infinity, Gem, Zap, Palette, MessageSquare, Mail, ShieldCheck, FileText, HelpCircle, BookOpen, Award } from "lucide-react";
 import { toast } from "sonner";
 
-const RAZORPAY_KEY = "rzp_live_SPo0RmeNnQGYT7";
+const RAZORPAY_KEY = "rzp_live_TiDL9k3NMfvwmO";
 
 const Index = () => {
   const { user, isAdmin, loading } = useAuth();

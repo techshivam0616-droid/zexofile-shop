@@ -1,7 +1,7 @@
 import { ref, get, set, update, push, remove } from "firebase/database";
 import { db } from "@/lib/firebase";
 
-export const RAZORPAY_KEY = "rzp_live_SPo0RmeNnQGYT7";
+export const RAZORPAY_KEY = "rzp_live_TiDL9k3NMfvwmO";
 
 export type StoreTheme = "minimal" | "bold" | "elegant";
 
@@ -13,7 +13,23 @@ export interface StorePlan {
   price: number;
   features?: string;
   active?: boolean;
+  maxProducts?: number; // 0 = unlimited
+  commissionRate?: number; // percent taken by platform per sale
+  flags?: Partial<Record<PlanFlag, boolean>>;
+  popular?: boolean;
 }
+
+export type PlanFlag = "customTheme" | "customColor" | "banner" | "categories" | "socialLinks" | "verifiedBadge" | "analytics" | "prioritySupport";
+export const PLAN_FLAGS: { k: PlanFlag; l: string }[] = [
+  { k: "customTheme", l: "Premium store themes" },
+  { k: "customColor", l: "Custom brand color" },
+  { k: "banner", l: "Store banner image" },
+  { k: "categories", l: "Product categories" },
+  { k: "socialLinks", l: "Social & WhatsApp links" },
+  { k: "verifiedBadge", l: "Verified store badge" },
+  { k: "analytics", l: "Sales analytics" },
+  { k: "prioritySupport", l: "Priority support" },
+];
 
 export interface Store {
   slug: string;
@@ -36,6 +52,9 @@ export interface Store {
   planId?: string;
   planName?: string;
   planExpiresAt?: number;
+  planMaxProducts?: number;
+  planCommissionRate?: number;
+  planFlags?: Partial<Record<PlanFlag, boolean>>;
   createdAt?: number;
 }
 
@@ -85,7 +104,12 @@ export const updateStore = (slug: string, data: Partial<Store>) => update(ref(db
 export const activatePlan = async (store: Store, plan: StorePlan, paymentId: string) => {
   const base = store.planExpiresAt && store.planExpiresAt > Date.now() ? store.planExpiresAt : Date.now();
   const expires = base + plan.days * 86400000;
-  await update(ref(db, `stores/${store.slug}`), { planId: plan.id, planName: plan.name, planExpiresAt: expires });
+  await update(ref(db, `stores/${store.slug}`), {
+    planId: plan.id, planName: plan.name, planExpiresAt: expires,
+    planMaxProducts: plan.maxProducts ?? 0,
+    planCommissionRate: typeof plan.commissionRate === "number" ? plan.commissionRate : null,
+    planFlags: plan.flags || {},
+  });
   await push(ref(db, `storeSubscriptions/${store.slug}`), {
     planId: plan.id, planName: plan.name, amount: plan.price, paymentId, ownerUid: store.ownerUid,
     startedAt: Date.now(), expiresAt: expires,
