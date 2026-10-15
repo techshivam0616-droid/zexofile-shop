@@ -7,9 +7,9 @@ import WalletPanel from "@/components/WalletPanel";
 import PaymentSettingsForm from "@/components/PaymentSettingsForm";
 import {
   Store, StorePlan, StoreProduct, StoreTheme, createStore, updateStore, slugify, isSlugAvailable, storeUrl,
-  isStoreLive, activatePlan, openRazorpay, saveStoreProduct, deleteStoreProduct,
+  isStoreLive, activatePlan, PLAN_FLAGS, openRazorpay, saveStoreProduct, deleteStoreProduct,
 } from "@/lib/stores";
-import { ArrowLeft, Copy, ExternalLink, Plus, Trash2, Edit, Check, Package, Palette, Wallet, Crown, ShoppingBag, Save } from "lucide-react";
+import { ArrowLeft, Copy, ExternalLink, Plus, Trash2, Edit, Check, Package, Palette, Wallet, Crown, ShoppingBag, Save, X } from "lucide-react";
 import { toast } from "sonner";
 
 interface Props { onClose: () => void; }
@@ -67,7 +67,7 @@ const StoreDashboard: React.FC<Props> = ({ onClose }) => {
                 </div>
               )}
               {tab === "overview" && <Overview store={store} />}
-              {tab === "products" && <Products slug={store.slug} />}
+              {tab === "products" && <Products slug={store.slug} max={store.planMaxProducts || 0} />}
               {tab === "design" && <StoreForm store={store} />}
               {tab === "wallet" && <WalletTab />}
               {tab === "plan" && <PlanPicker store={store} plans={plans} />}
@@ -208,13 +208,14 @@ const Section: React.FC<{ title: string; children: React.ReactNode }> = ({ title
 
 const emptyP: Partial<StoreProduct> = { title: "", price: 0, originalPrice: undefined, imageUrl: "", description: "", deliveryLink: "", previewLink: "", category: "", active: true };
 
-const Products: React.FC<{ slug: string }> = ({ slug }) => {
+const Products: React.FC<{ slug: string; max: number }> = ({ slug, max }) => {
   const [list, setList] = useState<StoreProduct[]>([]);
   const [edit, setEdit] = useState<Partial<StoreProduct> | null>(null);
   useEffect(() => onValue(ref(db, `storeProducts/${slug}`), (s) => setList(Object.entries(s.val() || {}).map(([id, v]: any) => ({ id, ...v })))), [slug]);
 
   const save = async () => {
     if (!edit?.title || !edit.price) return toast.error("Title and price required");
+    if (!edit.id && max > 0 && list.length >= max) return toast.error(`Your plan allows ${max} products. Upgrade to add more.`);
     const clean = Object.fromEntries(Object.entries(edit).filter(([, v]) => v !== undefined));
     await saveStoreProduct(slug, { ...clean, price: Number(edit.price), originalPrice: edit.originalPrice ? Number(edit.originalPrice) : null } as any);
     toast.success("Product saved"); setEdit(null);
@@ -242,7 +243,8 @@ const Products: React.FC<{ slug: string }> = ({ slug }) => {
 
   return (
     <div className="space-y-2">
-      <button onClick={() => setEdit({ ...emptyP })} className={`w-full ${btn}`}><Plus size={14} /> Add product</button>
+      {max > 0 && <p className="text-xs text-muted-foreground">{list.length} / {max} products used</p>}
+      <button onClick={() => (max > 0 && list.length >= max) ? toast.error(`Plan limit reached (${max} products). Upgrade your plan.`) : setEdit({ ...emptyP })} className={`w-full ${btn}`}><Plus size={14} /> Add product</button>
       {list.length === 0 && <p className="text-xs text-muted-foreground text-center py-6">No products yet.</p>}
       {list.map((p) => (
         <div key={p.id} className="flex items-center gap-3 p-2 border border-border rounded-lg">
@@ -282,22 +284,55 @@ const PlanPicker: React.FC<{ store: Store; plans: StorePlan[] }> = ({ store, pla
       });
     } catch (e: any) { toast.error(e.message); }
   };
+  const active = !!store.planExpiresAt && store.planExpiresAt > Date.now();
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       {store.planExpiresAt && (
-        <p className="text-sm text-foreground">Current plan: <b>{store.planName}</b> · {store.planExpiresAt > Date.now() ? `expires ${new Date(store.planExpiresAt).toLocaleDateString()}` : "expired"}</p>
+        <div className="p-4 rounded-2xl bg-muted flex items-center gap-3">
+          <Crown size={18} className="text-foreground" />
+          <p className="text-sm text-foreground">Current plan: <b>{store.planName}</b> · {active ? `expires ${new Date(store.planExpiresAt).toLocaleDateString()}` : "expired"}</p>
+        </div>
       )}
       {plans.length === 0 && <p className="text-sm text-muted-foreground">No plans available yet. Please check back soon.</p>}
-      {plans.map((p) => (
-        <div key={p.id} className="p-4 rounded-xl border border-border">
-          <div className="flex items-baseline justify-between">
-            <p className="font-bold text-foreground">{p.name}</p>
-            <p className="text-xl font-bold text-foreground">₹{p.price}<span className="text-xs font-normal text-muted-foreground"> / {p.period}</span></p>
-          </div>
-          {p.features && <ul className="mt-2 space-y-1">{p.features.split("\n").filter(Boolean).map((f) => <li key={f} className="text-xs text-muted-foreground flex gap-1"><Check size={12} className="mt-0.5" />{f}</li>)}</ul>}
-          <button onClick={() => buy(p)} className={`w-full mt-3 ${btn}`}>{store.planExpiresAt && store.planExpiresAt > Date.now() ? "Extend" : "Buy"} plan</button>
-        </div>
-      ))}
+      <div className="grid gap-4 md:grid-cols-2">
+        {plans.map((p, i) => {
+          const extra = (p.features || "").split("\n").map((x) => x.trim()).filter(Boolean);
+          const perDay = Math.round((p.price / (p.days || 30)) * 10) / 10;
+          return (
+            <div key={p.id} style={{ animationDelay: `${i * 80}ms` }}
+              className={`relative p-5 rounded-2xl border animate-fade-in transition-all hover:-translate-y-1 hover:shadow-xl ${p.popular ? "border-foreground shadow-lg" : "border-border"}`}>
+              {p.popular && <span className="absolute -top-3 left-5 px-3 py-0.5 rounded-full bg-primary text-primary-foreground text-[10px] font-semibold uppercase tracking-wider">Most popular</span>}
+              <p className="text-xs uppercase tracking-wider text-muted-foreground capitalize">{p.period}</p>
+              <p className="text-lg font-bold text-foreground mt-1">{p.name}</p>
+              <p className="mt-2"><span className="text-3xl font-bold text-foreground">₹{p.price}</span><span className="text-xs text-muted-foreground"> / {p.days} days</span></p>
+              <p className="text-[11px] text-muted-foreground">≈ ₹{perDay} per day</p>
+              <div className="grid grid-cols-2 gap-2 mt-4">
+                <div className="p-2.5 rounded-xl bg-muted text-center">
+                  <p className="text-base font-bold text-foreground">{p.maxProducts ? p.maxProducts : "∞"}</p>
+                  <p className="text-[10px] text-muted-foreground">Products</p>
+                </div>
+                <div className="p-2.5 rounded-xl bg-muted text-center">
+                  <p className="text-base font-bold text-foreground">{p.commissionRate ?? 10}%</p>
+                  <p className="text-[10px] text-muted-foreground">Fee per sale</p>
+                </div>
+              </div>
+              <ul className="mt-4 space-y-1.5">
+                {PLAN_FLAGS.map((x) => {
+                  const on = !!p.flags?.[x.k];
+                  return (
+                    <li key={x.k} className={`text-xs flex items-center gap-2 ${on ? "text-foreground" : "text-muted-foreground line-through opacity-60"}`}>
+                      <span className={`w-4 h-4 rounded-full flex items-center justify-center ${on ? "bg-primary text-primary-foreground" : "bg-muted"}`}>{on ? <Check size={10} /> : <X size={10} />}</span>{x.l}
+                    </li>
+                  );
+                })}
+                {extra.map((f) => <li key={f} className="text-xs text-foreground flex items-center gap-2"><span className="w-4 h-4 rounded-full flex items-center justify-center bg-primary text-primary-foreground"><Check size={10} /></span>{f}</li>)}
+              </ul>
+              <button onClick={() => buy(p)} className={`w-full mt-5 ${btn}`}>{active ? "Extend" : "Buy"} {p.name} · ₹{p.price}</button>
+            </div>
+          );
+        })}
+      </div>
+      <p className="text-[11px] text-center text-muted-foreground">Secure payment by Razorpay · UPI, cards, netbanking</p>
     </div>
   );
 };

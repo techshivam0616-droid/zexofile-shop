@@ -70,7 +70,7 @@ const StorePage = () => {
             const [rateSnap, holdSnap] = await Promise.all([
               get(ref(db, "siteSettings/storeCommissionRate")), get(ref(db, "siteSettings/payoutHoldDays")),
             ]);
-            const rate = typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
+            const rate = typeof store.planCommissionRate === "number" ? store.planCommissionRate / 100 : typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
             const hold = typeof holdSnap.val() === "number" ? holdSnap.val() : 7;
             const earn = Math.round(p.price * (1 - rate) * 100) / 100;
             await creditWallet(store.ownerUid, earn, {
