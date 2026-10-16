@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
-import { ref, onValue, push, update, remove, set } from "firebase/database";
+import { ref, onValue, push, update, remove, set, get } from "firebase/database";
+import { creditWallet } from "@/lib/wallet";
 import { db } from "@/lib/firebase";
-import { Store, StorePlan, PERIOD_DAYS, PLAN_FLAGS, storeUrl } from "@/lib/stores";
+import { Store, StorePlan, PERIOD_DAYS, usePlanFeatures, slugify, storeUrl } from "@/lib/stores";
 import { Plus, Trash2, ExternalLink, Power, Save, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
 
@@ -44,6 +45,37 @@ const StoreRow: React.FC<{ s: Store; open: boolean; toggle: () => void }> = ({ s
   const [products, setProducts] = useState<any[]>([]);
   const [orders, setOrders] = useState<any[]>([]);
   const [days, setDays] = useState("30");
+  const [saleProd, setSaleProd] = useState("");
+  const [saleQty, setSaleQty] = useState("1");
+  const [saleAmt, setSaleAmt] = useState("");
+  const [deductFee, setDeductFee] = useState(true);
+  const [credit, setCredit] = useState("");
+  const [creditNote, setCreditNote] = useState("");
+  const addSale = async () => {
+    const prod = products.find((p) => p.id === saleProd);
+    const qty = Math.max(1, parseInt(saleQty) || 1);
+    const unit = saleAmt ? Number(saleAmt) : prod?.price || 0;
+    if (!unit) return toast.error("Select a product or enter amount");
+    const rateSnap = await get(ref(db, "siteSettings/storeCommissionRate"));
+    const rate = !deductFee ? 0 : typeof s.planCommissionRate === "number" ? s.planCommissionRate / 100 : typeof rateSnap.val() === "number" ? rateSnap.val() : 0.1;
+    const ref0 = `ADMIN-${Date.now().toString(36).toUpperCase()}`;
+    for (let i = 0; i < qty; i++) {
+      await push(ref(db, `storeOrders/${s.slug}`), {
+        productId: prod?.id || "", productTitle: prod?.title || "Manual sale", price: unit, razorpayPaymentId: `${ref0}-${i + 1}`,
+        purchasedAt: Date.now(), storeSlug: s.slug, storeName: s.name, buyerEmail: "Added by admin", manual: true,
+      });
+    }
+    const earn = Math.round(unit * qty * (1 - rate) * 100) / 100;
+    await creditWallet(s.ownerUid, earn, { type: "credit_store_sale", refId: ref0, note: `Admin added ${qty} sale(s) · ${prod?.title || "Manual"}` });
+    toast.success(`${qty} sale(s) added · ₹${earn} credited to wallet`);
+    setSaleQty("1"); setSaleAmt("");
+  };
+  const addCredit = async () => {
+    const amt = Number(credit);
+    if (!amt) return toast.error("Enter amount");
+    await creditWallet(s.ownerUid, amt, { type: "credit_sale", refId: `ADMIN-CREDIT-${Date.now()}`, note: creditNote || "Admin credit" });
+    toast.success(`₹${amt} added to wallet`); setCredit(""); setCreditNote("");
+  };
   useEffect(() => {
     if (!open) return;
     const a = onValue(ref(db, `storeProducts/${s.slug}`), (x) => setProducts(Object.entries(x.val() || {}).map(([id, v]: any) => ({ id, ...v }))));
@@ -91,6 +123,27 @@ const StoreRow: React.FC<{ s: Store; open: boolean; toggle: () => void }> = ({ s
               await set(ref(db, `users/${s.ownerUid}/storeSlug`), null); toast.success("Store deleted");
             }} className="px-3 py-1.5 border border-destructive text-destructive rounded-md flex items-center gap-1"><Trash2 size={12} /> Delete</button>
           </div>
+          <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+            <p className="font-semibold text-foreground">Add sales (credits store wallet)</p>
+            <select value={saleProd} onChange={(e) => setSaleProd(e.target.value)} className={inputCls}>
+              <option value="">— Select product —</option>
+              {products.map((p) => <option key={p.id} value={p.id}>{p.title} · ₹{p.price}</option>)}
+            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" placeholder="Quantity" value={saleQty} onChange={(e) => setSaleQty(e.target.value)} className={inputCls} />
+              <input type="number" placeholder="Price each (optional)" value={saleAmt} onChange={(e) => setSaleAmt(e.target.value)} className={inputCls} />
+            </div>
+            <label className="flex items-center gap-2 text-foreground"><input type="checkbox" checked={deductFee} onChange={(e) => setDeductFee(e.target.checked)} /> Deduct platform fee</label>
+            <button onClick={addSale} className="w-full py-2 bg-primary text-primary-foreground rounded-md">Add sale</button>
+          </div>
+          <div className="p-3 rounded-lg bg-muted/50 space-y-2">
+            <p className="font-semibold text-foreground">Add money to wallet directly</p>
+            <div className="grid grid-cols-2 gap-2">
+              <input type="number" placeholder="Amount ₹" value={credit} onChange={(e) => setCredit(e.target.value)} className={inputCls} />
+              <input placeholder="Note (optional)" value={creditNote} onChange={(e) => setCreditNote(e.target.value)} className={inputCls} />
+            </div>
+            <button onClick={addCredit} className="w-full py-2 bg-primary text-primary-foreground rounded-md">Credit wallet</button>
+          </div>
           <div>
             <p className="font-semibold text-foreground mb-1">Products</p>
             {products.map((p) => (
@@ -114,6 +167,20 @@ const Plans = () => {
   const [plans, setPlans] = useState<StorePlan[]>([]);
   const [f, setF] = useState<any>(emptyPlan);
   const [editId, setEditId] = useState<string | null>(null);
+  const FEATURES = usePlanFeatures();
+  const [newFeat, setNewFeat] = useState("");
+  const addFeature = async () => {
+    const l = newFeat.trim(); if (!l) return;
+    const k = "f_" + slugify(l).replace(/-/g, "_");
+    await set(ref(db, `siteSettings/planFeatures/${k}`), l);
+    await set(ref(db, `siteSettings/planFeaturesRemoved/${k}`), null);
+    setNewFeat(""); toast.success("Feature added");
+  };
+  const removeFeature = async (k: string) => {
+    if (!confirm("Remove this feature from all plans?")) return;
+    await set(ref(db, `siteSettings/planFeatures/${k}`), null);
+    await set(ref(db, `siteSettings/planFeaturesRemoved/${k}`), true);
+  };
   useEffect(() => onValue(ref(db, "storePlans"), (s) => setPlans(Object.entries(s.val() || {}).map(([id, v]: any) => ({ id, ...v })))), []);
   const save = async () => {
     if (!f.name || !f.price) return toast.error("Name and price required");
@@ -151,11 +218,17 @@ const Plans = () => {
         </div>
         <p className="text-xs font-medium text-foreground pt-1">Features included</p>
         <div className="grid grid-cols-2 gap-1.5">
-          {PLAN_FLAGS.map((x) => (
+          {FEATURES.map((x) => (
             <label key={x.k} className="flex items-center gap-2 text-xs text-foreground p-2 border border-border rounded-md cursor-pointer">
-              <input type="checkbox" checked={!!f.flags?.[x.k]} onChange={(e) => setF({ ...f, flags: { ...f.flags, [x.k]: e.target.checked } })} /> {x.l}
+              <input type="checkbox" checked={!!f.flags?.[x.k]} onChange={(e) => setF({ ...f, flags: { ...f.flags, [x.k]: e.target.checked } })} />
+              <span className="flex-1">{x.l}</span>
+              <button type="button" onClick={(e) => { e.preventDefault(); removeFeature(x.k); }} className="text-destructive" aria-label="Remove feature"><Trash2 size={12} /></button>
             </label>
           ))}
+        </div>
+        <div className="flex gap-2">
+          <input placeholder="New feature (e.g. Custom domain)" value={newFeat} onChange={(e) => setNewFeat(e.target.value)} className={inputCls} />
+          <button onClick={addFeature} className="px-3 bg-primary text-primary-foreground rounded-lg text-xs flex items-center gap-1"><Plus size={12} /> Add</button>
         </div>
         <label className="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" checked={f.popular} onChange={(e) => setF({ ...f, popular: e.target.checked })} /> Mark as "Most popular"</label>
         <textarea placeholder="Extra features (one per line, optional)" value={f.features} onChange={(e) => setF({ ...f, features: e.target.value })} className={inputCls + " min-h-[60px]"} />
