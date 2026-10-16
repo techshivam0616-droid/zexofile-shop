@@ -1,4 +1,5 @@
-import { ref, get, set, update, push, remove } from "firebase/database";
+import { ref, get, set, update, push, remove, onValue } from "firebase/database";
+import { useEffect, useState } from "react";
 import { db } from "@/lib/firebase";
 
 export const RAZORPAY_KEY = "rzp_live_TiDL9k3NMfvwmO";
@@ -19,7 +20,7 @@ export interface StorePlan {
   popular?: boolean;
 }
 
-export type PlanFlag = "customTheme" | "customColor" | "banner" | "categories" | "socialLinks" | "verifiedBadge" | "analytics" | "prioritySupport";
+export type PlanFlag = string;
 export const PLAN_FLAGS: { k: PlanFlag; l: string }[] = [
   { k: "customTheme", l: "Premium store themes" },
   { k: "customColor", l: "Custom brand color" },
@@ -143,4 +144,16 @@ export const openRazorpay = (opts: {
   } catch {
     throw new Error("Payment gateway not available");
   }
+};
+
+/** Plan feature checklist: defaults + admin-added (siteSettings/planFeatures), minus admin-removed (siteSettings/planFeaturesRemoved). */
+export const usePlanFeatures = () => {
+  const [custom, setCustom] = useState<{ k: string; l: string }[]>([]);
+  const [removed, setRemoved] = useState<Record<string, boolean>>({});
+  useEffect(() => {
+    const a = onValue(ref(db, "siteSettings/planFeatures"), (s) => setCustom(Object.entries(s.val() || {}).map(([k, l]: any) => ({ k, l }))));
+    const b = onValue(ref(db, "siteSettings/planFeaturesRemoved"), (s) => setRemoved(s.val() || {}));
+    return () => { a(); b(); };
+  }, []);
+  return [...PLAN_FLAGS, ...custom].filter((f) => !removed[f.k]);
 };
