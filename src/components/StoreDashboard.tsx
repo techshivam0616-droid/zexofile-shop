@@ -7,7 +7,7 @@ import WalletPanel from "@/components/WalletPanel";
 import PaymentSettingsForm from "@/components/PaymentSettingsForm";
 import {
   Store, StorePlan, StoreProduct, StoreTheme, createStore, updateStore, slugify, isSlugAvailable, storeUrl,
-  isStoreLive, activatePlan, PLAN_FLAGS, openRazorpay, saveStoreProduct, deleteStoreProduct,
+  isStoreLive, activatePlan, usePlanFeatures, openRazorpay, saveStoreProduct, deleteStoreProduct,
 } from "@/lib/stores";
 import { ArrowLeft, Copy, ExternalLink, Plus, Trash2, Edit, Check, Package, Palette, Wallet, Crown, ShoppingBag, Save, X } from "lucide-react";
 import { toast } from "sonner";
@@ -275,6 +275,7 @@ const WalletTab = () => {
 };
 
 const PlanPicker: React.FC<{ store: Store; plans: StorePlan[] }> = ({ store, plans }) => {
+  const FEATURES = usePlanFeatures();
   const { user } = useAuth();
   const buy = (p: StorePlan) => {
     try {
@@ -317,7 +318,7 @@ const PlanPicker: React.FC<{ store: Store; plans: StorePlan[] }> = ({ store, pla
                 </div>
               </div>
               <ul className="mt-4 space-y-1.5">
-                {PLAN_FLAGS.map((x) => {
+                {FEATURES.map((x) => {
                   const on = !!p.flags?.[x.k];
                   return (
                     <li key={x.k} className={`text-xs flex items-center gap-2 ${on ? "text-foreground" : "text-muted-foreground line-through opacity-60"}`}>
