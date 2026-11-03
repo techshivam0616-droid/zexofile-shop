@@ -26,6 +26,7 @@ import { creditWallet } from "@/lib/wallet";
 import { get as dbGet } from "firebase/database";
 import { GraduationCap, Globe, Wrench, Search, CreditCard, Infinity, Gem, Zap, Palette, MessageSquare, Mail, ShieldCheck, FileText, HelpCircle, BookOpen, Award } from "lucide-react";
 import { toast } from "sonner";
+import { DEMO_MODE, DEMO_PRODUCTS, isDemoProduct } from "@/lib/demoData";
 
 const RAZORPAY_KEY = "rzp_live_TiDL9k3NMfvwmO";
 
@@ -74,9 +75,12 @@ const Index = () => {
     return () => unsub();
   }, []);
 
-  const bestSellingProducts = products.filter(p => p.bestSelling);
+  // Real Firebase products first, then the demo catalogue (src/lib/demoData.ts).
+  const allProducts: Product[] = DEMO_MODE ? [...products, ...DEMO_PRODUCTS] : products;
+  const bestSellingProducts = allProducts.filter(p => p.bestSelling);
 
   const handleAddToCart = (product: Product) => {
+    if (isDemoProduct(product)) { toast("Coming soon"); return; }
     if (!user) { setAuthOpen(true); return; }
     if (cart.find(c => c.id === product.id)) {
       toast("Already in cart");
@@ -91,6 +95,8 @@ const Index = () => {
   };
 
   const handleBuy = (product: Product, discount: number = 0) => {
+    // Demo products are never purchasable: no Razorpay, no order.
+    if (isDemoProduct(product)) { toast("Coming soon"); return; }
     if (!user) { setAuthOpen(true); return; }
     const finalPrice = Math.round(product.price * (1 - discount / 100) * 100);
 
@@ -219,12 +225,12 @@ const Index = () => {
           {bestSellingProducts.length > 0 ? (
             <ProductGrid products={bestSellingProducts} onProductClick={setSelectedProduct} onAddToCart={handleAddToCart} title="Best Selling Products" subtitle="People are loving these!" />
           ) : (
-            <ProductGrid products={products} onProductClick={setSelectedProduct} onAddToCart={handleAddToCart} />
+            <ProductGrid products={allProducts} onProductClick={setSelectedProduct} onAddToCart={handleAddToCart} />
           )}
         </div>
 
-        {bestSellingProducts.length > 0 && products.length > bestSellingProducts.length && (
-          <ProductGrid products={products.filter(p => !p.bestSelling)} onProductClick={setSelectedProduct} onAddToCart={handleAddToCart} title="All Products" subtitle="Browse our full collection" />
+        {bestSellingProducts.length > 0 && allProducts.length > bestSellingProducts.length && (
+          <ProductGrid products={allProducts.filter(p => !p.bestSelling)} onProductClick={setSelectedProduct} onAddToCart={handleAddToCart} title="All Products" subtitle="Browse our full collection" />
         )}
 
         <AboutFounders />
@@ -336,7 +342,7 @@ const Index = () => {
       <ProfileModal open={profileOpen} onClose={() => setProfileOpen(false)} />
       <ProductDetail product={selectedProduct} onClose={() => setSelectedProduct(null)} onBuy={(p) => handleBuy(p, 0)} onAddToCart={handleAddToCart} />
       <CustomProjectModal open={customOpen} onClose={() => setCustomOpen(false)} />
-      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} products={products} onProductClick={(p) => { setSelectedProduct(p); setSearchOpen(false); }} />
+      <SearchModal open={searchOpen} onClose={() => setSearchOpen(false)} products={allProducts} onProductClick={(p) => { setSelectedProduct(p); setSearchOpen(false); }} />
       <CartModal open={cartOpen} onClose={() => setCartOpen(false)} items={cart} onRemove={handleRemoveFromCart} onBuy={handleBuy} />
       {legalPage && <LegalPages page={legalPage} onClose={() => setLegalPage(null)} />}
       <WhatsAppFloat />

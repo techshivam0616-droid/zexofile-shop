@@ -43,13 +43,13 @@ const SearchModal: React.FC<SearchModalProps> = ({ open, onClose, products, onPr
           <p className="text-sm text-muted-foreground text-center py-8">No products found for "{query}"</p>
         ) : (
           <div className="space-y-3">
-            {filtered.map((p) => (
+            {filtered.slice(0, 60).map((p) => (
               <button
                 key={p.id}
                 onClick={() => { onProductClick(p); onClose(); }}
                 className="w-full flex items-center gap-3 p-3 bg-muted rounded-xl text-left"
               >
-                <img src={p.imageUrl} alt={p.title} className="w-14 h-14 rounded-lg object-cover" />
+                <img src={p.imageUrl} alt={p.title} className="w-14 h-14 rounded-lg object-cover" loading="lazy" />
                 <div className="flex-1 min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
                   <p className="text-xs text-muted-foreground">Rs. {p.price.toFixed(2)} {p.category && `· ${p.category}`}</p>

@@ -1,5 +1,5 @@
-import React from "react";
-import { Star, ShoppingCart } from "lucide-react";
+import React, { useState } from "react";
+import { Star, ShoppingCart, Clock } from "lucide-react";
 
 export interface Product {
   id: string;
@@ -17,6 +17,8 @@ export interface Product {
   screenshots?: string[];
   features?: string;
   techStack?: string;
+  /** Demo catalogue item (src/lib/demoData.ts): shown, never purchasable. */
+  isDemo?: boolean;
 }
 
 interface ProductGridProps {
@@ -25,10 +27,14 @@ interface ProductGridProps {
   onAddToCart?: (product: Product) => void;
   title?: string;
   subtitle?: string;
+  /** Cards shown per page; a "Load more" button reveals the next page. */
+  pageSize?: number;
 }
 
-const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onAddToCart, title = "Best Selling Products", subtitle = "People are loving these!" }) => {
+const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onAddToCart, title = "Best Selling Products", subtitle = "People are loving these!", pageSize = 20 }) => {
+  const [visible, setVisible] = useState(pageSize);
   if (products.length === 0) return null;
+  const shown = products.slice(0, visible);
 
   return (
     <section className="px-4 py-10">
@@ -38,7 +44,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onA
       <p className="text-muted-foreground mt-1 mb-6">{subtitle}</p>
 
       <div className="grid grid-cols-2 gap-3 sm:gap-4">
-        {products.map((product) => (
+        {shown.map((product) => (
           <div key={product.id} className="bg-muted rounded-xl overflow-hidden group transition-transform hover:scale-[1.02]">
             <button
               onClick={() => onProductClick(product)}
@@ -63,7 +69,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onA
                 </div>
               </div>
             </button>
-            {onAddToCart && (
+            {product.isDemo ? (
+              <div className="px-3 pb-3">
+                <button
+                  disabled
+                  aria-disabled="true"
+                  className="w-full py-2 mt-1 border border-border rounded-lg text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 opacity-70 cursor-not-allowed"
+                >
+                  <Clock size={12} /> Coming Soon
+                </button>
+              </div>
+            ) : onAddToCart && (
               <div className="px-3 pb-3">
                 <button
                   onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}
@@ -76,6 +92,17 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onA
           </div>
         ))}
       </div>
+
+      {products.length > visible && (
+        <div className="mt-6 text-center">
+          <button
+            onClick={() => setVisible((v) => v + pageSize)}
+            className="px-6 py-2.5 border border-border rounded-full text-sm font-medium text-foreground hover:bg-muted transition-colors"
+          >
+            Load more ({products.length - visible} more)
+          </button>
+        </div>
+      )}
     </section>
   );
 };

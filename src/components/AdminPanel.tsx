@@ -7,6 +7,7 @@ import {
   ShoppingCart, TrendingUp, Layers, HelpCircle, BookOpen, MessageSquare, Check, X as XIcon, Send, Link, Monitor, Cpu
 } from "lucide-react";
 import ImageUpload, { MultiImageUpload } from "@/components/ImageUpload";
+import { DEMO_MODE, DEMO_PRODUCTS, DEMO_REVENUE_OFFSET, DEMO_PURCHASES_OFFSET, DEMO_CUSTOM_REQUESTS_OFFSET, getDemoPurchases, formatINR } from "@/lib/demoData";
 import { Feedback } from "@/components/FeedbackSection";
 import { ref, push, set, remove, onValue, get, update } from "firebase/database";
 import { db } from "@/lib/firebase";
@@ -139,6 +140,15 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
 
   const totalRevenue = allPurchases.reduce((s, p) => s + (p.price || 0), 0);
   const totalPurchases = allPurchases.length;
+
+  // Displayed stats = real values + demo offsets (src/lib/demoData.ts; DEMO_MODE=false shows real only).
+  const shownRevenue = totalRevenue + (DEMO_MODE ? DEMO_REVENUE_OFFSET : 0);
+  const shownPurchases = totalPurchases + (DEMO_MODE ? DEMO_PURCHASES_OFFSET : 0);
+  const shownProducts = products.length + (DEMO_MODE ? DEMO_PRODUCTS.length : 0);
+  const shownCustomRequests = projects.length + (DEMO_MODE ? DEMO_CUSTOM_REQUESTS_OFFSET : 0);
+  const [demoPurchases] = useState(() => getDemoPurchases(25));
+  const [demoProductsShown, setDemoProductsShown] = useState(30);
+  const recentPurchases = [...[...allPurchases].sort((x, y) => (x.purchasedAt || 0) - (y.purchasedAt || 0)).slice(-10).reverse(), ...demoPurchases];
 
   // Product CRUD
   const handleSaveProduct = async (e: React.FormEvent) => {
@@ -320,22 +330,22 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
             <div className="grid grid-cols-2 gap-3">
               <div className="bg-muted rounded-xl p-4 text-center">
                 <DollarSign size={24} className="mx-auto text-foreground mb-2" />
-                <p className="text-2xl font-bold text-foreground">Rs. {totalRevenue.toFixed(0)}</p>
+                <p className="text-2xl font-bold text-foreground">Rs. {formatINR(shownRevenue)}</p>
                 <p className="text-xs text-muted-foreground">Total Revenue</p>
               </div>
               <div className="bg-muted rounded-xl p-4 text-center">
                 <ShoppingCart size={24} className="mx-auto text-foreground mb-2" />
-                <p className="text-2xl font-bold text-foreground">{totalPurchases}</p>
+                <p className="text-2xl font-bold text-foreground">{formatINR(shownPurchases)}</p>
                 <p className="text-xs text-muted-foreground">Total Purchases</p>
               </div>
               <div className="bg-muted rounded-xl p-4 text-center">
                 <Package size={24} className="mx-auto text-foreground mb-2" />
-                <p className="text-2xl font-bold text-foreground">{products.length}</p>
+                <p className="text-2xl font-bold text-foreground">{formatINR(shownProducts)}</p>
                 <p className="text-xs text-muted-foreground">Total Products</p>
               </div>
               <div className="bg-muted rounded-xl p-4 text-center">
                 <FolderOpen size={24} className="mx-auto text-foreground mb-2" />
-                <p className="text-2xl font-bold text-foreground">{projects.length}</p>
+                <p className="text-2xl font-bold text-foreground">{formatINR(shownCustomRequests)}</p>
                 <p className="text-xs text-muted-foreground">Custom Requests</p>
               </div>
             </div>
@@ -343,17 +353,17 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
             {/* Recent Purchases */}
             <div>
               <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2"><TrendingUp size={14} /> Recent Purchases</h3>
-              {allPurchases.length === 0 ? (
+              {recentPurchases.length === 0 ? (
                 <p className="text-sm text-muted-foreground">No purchases yet.</p>
               ) : (
                 <div className="space-y-2">
-                  {allPurchases.slice(-10).reverse().map((p, i) => (
+                  {recentPurchases.map((p, i) => (
                     <div key={i} className="flex justify-between items-center p-3 bg-muted rounded-lg">
                       <div>
                         <p className="text-sm font-medium text-foreground">{p.productTitle}</p>
                         <p className="text-xs text-muted-foreground">{new Date(p.purchasedAt).toLocaleDateString()}</p>
                       </div>
-                      <span className="text-sm font-semibold text-foreground">Rs. {p.price}</span>
+                      <span className="text-sm font-semibold text-foreground">Rs. {formatINR(p.price || 0)}</span>
                     </div>
                   ))}
                 </div>
@@ -446,6 +456,29 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
               ))}
               {products.length === 0 && <p className="text-sm text-muted-foreground text-center py-8">No products yet.</p>}
             </div>
+
+            {DEMO_MODE && DEMO_PRODUCTS.length > 0 && (
+              <div className="mt-6">
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Demo products ({DEMO_PRODUCTS.length}) · read-only, shown as "Coming Soon" on the site</p>
+                <div className="space-y-2">
+                  {DEMO_PRODUCTS.slice(0, demoProductsShown).map((p) => (
+                    <div key={p.id} className="flex items-center gap-3 p-3 bg-muted/60 rounded-xl">
+                      <img src={p.imageUrl} alt={p.title} className="w-12 h-12 rounded-lg object-cover" loading="lazy" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-foreground truncate">{p.title}</p>
+                        <p className="text-xs text-muted-foreground">Rs. {p.price} · {p.type} · {p.category} · demo</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                {demoProductsShown < DEMO_PRODUCTS.length && (
+                  <button onClick={() => setDemoProductsShown((n) => n + 50)}
+                    className="w-full mt-3 py-2.5 border border-border rounded-lg text-xs font-medium text-muted-foreground">
+                    Show more ({DEMO_PRODUCTS.length - demoProductsShown} more)
+                  </button>
+                )}
+              </div>
+            )}
           </>
         )}
 

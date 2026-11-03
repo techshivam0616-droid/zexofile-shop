@@ -39,16 +39,25 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onClose, onBuy, 
         <p className="text-xs text-muted-foreground mt-1">Shipping calculated at checkout.</p>
 
         <div className="mt-6 space-y-3">
-          {onAddToCart && (
-            <button onClick={() => onAddToCart(product)}
-              className="w-full py-3.5 border border-foreground text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors flex items-center justify-center gap-2">
-              <ShoppingCart size={16} /> Add to cart
+          {product.isDemo ? (
+            <button disabled aria-disabled="true"
+              className="w-full py-3.5 bg-muted text-muted-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2 cursor-not-allowed">
+              <Clock size={16} /> Coming Soon
             </button>
+          ) : (
+            <>
+              {onAddToCart && (
+                <button onClick={() => onAddToCart(product)}
+                  className="w-full py-3.5 border border-foreground text-foreground rounded-lg font-medium text-sm hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                  <ShoppingCart size={16} /> Add to cart
+                </button>
+              )}
+              <button onClick={() => onBuy(product)}
+                className="w-full py-3.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2">
+                <CreditCard size={16} /> Buy it now
+              </button>
+            </>
           )}
-          <button onClick={() => onBuy(product)}
-            className="w-full py-3.5 bg-primary text-primary-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2">
-            <CreditCard size={16} /> Buy it now
-          </button>
         </div>
 
         <div className="mt-6 flex items-center justify-between">
