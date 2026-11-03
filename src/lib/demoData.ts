@@ -80,7 +80,7 @@ const GROUPS: readonly Group[] = [
   },
   {
     category: "Templates", type: "website",
-    subjects: ["Admin Dashboard", "SaaS Landing", "Agency", "Blog", "App Landing", "Coming Soon", "Login & Signup", "Pricing Page", "Email", "Resume", "Invitation", "Business Card", "Instagram Post", "YouTube Thumbnail", "Presentation", "Notion"],
+    subjects: ["Admin Dashboard", "SaaS Landing", "Agency", "Blog", "App Landing", "Maintenance Page", "Login & Signup", "Pricing Page", "Email", "Resume", "Invitation", "Business Card", "Instagram Post", "YouTube Thumbnail", "Presentation", "Notion"],
     kinds: ["Template", "UI Kit", "Template Pack", "Bundle", "Kit"],
     tech: ["HTML, Tailwind", "React, shadcn/ui", "Figma", "Canva", "Bootstrap"],
     price: [29, 799],

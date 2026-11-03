@@ -26,7 +26,7 @@ import { creditWallet } from "@/lib/wallet";
 import { get as dbGet } from "firebase/database";
 import { GraduationCap, Globe, Wrench, Search, CreditCard, Infinity, Gem, Zap, Palette, MessageSquare, Mail, ShieldCheck, FileText, HelpCircle, BookOpen, Award } from "lucide-react";
 import { toast } from "sonner";
-import { DEMO_MODE, DEMO_PRODUCTS, isDemoProduct } from "@/lib/demoData";
+import { DEMO_MODE, DEMO_PRODUCTS } from "@/lib/demoData";
 
 const RAZORPAY_KEY = "rzp_live_TiDL9k3NMfvwmO";
 
@@ -80,7 +80,6 @@ const Index = () => {
   const bestSellingProducts = allProducts.filter(p => p.bestSelling);
 
   const handleAddToCart = (product: Product) => {
-    if (isDemoProduct(product)) { toast("Coming soon"); return; }
     if (!user) { setAuthOpen(true); return; }
     if (cart.find(c => c.id === product.id)) {
       toast("Already in cart");
@@ -95,8 +94,6 @@ const Index = () => {
   };
 
   const handleBuy = (product: Product, discount: number = 0) => {
-    // Demo products are never purchasable: no Razorpay, no order.
-    if (isDemoProduct(product)) { toast("Coming soon"); return; }
     if (!user) { setAuthOpen(true); return; }
     const finalPrice = Math.round(product.price * (1 - discount / 100) * 100);
 

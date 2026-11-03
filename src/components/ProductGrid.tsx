@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Star, ShoppingCart, Clock } from "lucide-react";
+import { Star, ShoppingCart } from "lucide-react";
 
 export interface Product {
   id: string;
@@ -69,17 +69,7 @@ const ProductGrid: React.FC<ProductGridProps> = ({ products, onProductClick, onA
                 </div>
               </div>
             </button>
-            {product.isDemo ? (
-              <div className="px-3 pb-3">
-                <button
-                  disabled
-                  aria-disabled="true"
-                  className="w-full py-2 mt-1 border border-border rounded-lg text-xs font-medium text-muted-foreground flex items-center justify-center gap-1 opacity-70 cursor-not-allowed"
-                >
-                  <Clock size={12} /> Coming Soon
-                </button>
-              </div>
-            ) : onAddToCart && (
+            {onAddToCart && (
               <div className="px-3 pb-3">
                 <button
                   onClick={(e) => { e.stopPropagation(); onAddToCart(product); }}

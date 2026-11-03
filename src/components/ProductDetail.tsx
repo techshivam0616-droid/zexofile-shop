@@ -39,12 +39,7 @@ const ProductDetail: React.FC<ProductDetailProps> = ({ product, onClose, onBuy, 
         <p className="text-xs text-muted-foreground mt-1">Shipping calculated at checkout.</p>
 
         <div className="mt-6 space-y-3">
-          {product.isDemo ? (
-            <button disabled aria-disabled="true"
-              className="w-full py-3.5 bg-muted text-muted-foreground rounded-lg font-medium text-sm flex items-center justify-center gap-2 cursor-not-allowed">
-              <Clock size={16} /> Coming Soon
-            </button>
-          ) : (
+          {(
             <>
               {onAddToCart && (
                 <button onClick={() => onAddToCart(product)}

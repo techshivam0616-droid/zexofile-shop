@@ -459,7 +459,7 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ onClose }) => {
 
             {DEMO_MODE && DEMO_PRODUCTS.length > 0 && (
               <div className="mt-6">
-                <p className="text-xs font-semibold text-muted-foreground mb-2">Demo products ({DEMO_PRODUCTS.length}) · read-only, shown as "Coming Soon" on the site</p>
+                <p className="text-xs font-semibold text-muted-foreground mb-2">Demo products ({DEMO_PRODUCTS.length}) (read-only)</p>
                 <div className="space-y-2">
                   {DEMO_PRODUCTS.slice(0, demoProductsShown).map((p) => (
                     <div key={p.id} className="flex items-center gap-3 p-3 bg-muted/60 rounded-xl">
