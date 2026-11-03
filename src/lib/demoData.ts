@@ -48,42 +48,42 @@ const GROUPS: readonly Group[] = [
     subjects: ["Restaurant", "Cafe", "Gym & Fitness", "Salon", "Real Estate", "Hotel Booking", "Travel Agency", "Wedding Planner", "Coaching Institute", "School", "Hospital", "Dental Clinic", "Photography", "Interior Design", "Event Management", "NGO", "Law Firm", "CA Firm", "Bakery", "Yoga Studio", "Car Rental", "Tiffin Service", "Jewellery Store", "Boutique", "Mobile Repair", "Pet Shop", "Construction", "Digital Agency", "Startup", "Portfolio"],
     kinds: ["Website", "Website Template", "Landing Page", "Business Website", "Responsive Website", "Premium Website"],
     tech: ["React, Tailwind CSS", "HTML, CSS, JavaScript", "Next.js, Tailwind", "React, Vite, Firebase", "WordPress, Elementor", "Bootstrap 5, jQuery"],
-    price: [199, 2499],
+    price: [500, 3000],
   },
   {
     category: "E-commerce", type: "website",
     subjects: ["Fashion", "Grocery", "Electronics", "Shoes", "Cosmetics", "Handicraft", "Organic Food", "Book Store", "Toy Store", "Furniture", "Saree", "Kurti", "Spices", "Sweets", "Gift Shop", "Watch Store", "Perfume", "Digital Products", "Mobile Accessories", "Home Decor"],
     kinds: ["E-commerce Website", "Online Store", "Shop Website", "Store with Admin Panel", "Shopping Website"],
     tech: ["React, Firebase, Razorpay", "Next.js, Stripe, MongoDB", "MERN Stack", "React, Supabase", "PHP, MySQL"],
-    price: [499, 3999],
+    price: [1000, 5000],
   },
   {
     category: "Web App", type: "website",
     subjects: ["Expense Tracker", "Attendance", "Inventory", "Billing & GST", "School Management", "Hostel Management", "Library Management", "Hospital Management", "CRM", "HR & Payroll", "Task Manager", "Quiz", "Blog", "Job Portal", "Food Delivery", "Chat", "URL Shortener", "Resume Builder", "Invoice Generator", "Booking System", "Online Exam", "Notes Sharing", "Movie Ticket Booking", "Gym Management"],
     kinds: ["Web App", "Management System", "App with Admin Panel", "Full Stack Project", "System (Source Code)"],
     tech: ["React, Node.js, MongoDB", "MERN Stack", "PHP, MySQL", "Python, Django", "React, Firebase", "Java, Spring Boot", "Next.js, Prisma, PostgreSQL"],
-    price: [299, 2999],
+    price: [500, 4000],
   },
   {
     category: "Portfolio", type: "website",
     subjects: ["Developer", "Designer", "Photographer", "Student", "Freelancer", "Video Editor", "Artist", "Writer", "Doctor", "Musician", "Influencer", "Personal"],
     kinds: ["Portfolio Website", "Portfolio Template", "Resume Website", "Personal Website", "Animated Portfolio"],
     tech: ["HTML, CSS, JS", "React, Framer Motion", "Next.js, Tailwind", "Three.js, React", "GSAP, HTML"],
-    price: [99, 999],
+    price: [200, 1500],
   },
   {
     category: "Course", type: "course",
     subjects: ["Web Development", "React JS", "JavaScript", "Python", "Java", "C++ DSA", "Node.js", "Full Stack", "Next.js", "Tailwind CSS", "Flutter", "Android Development", "Data Science", "Machine Learning", "Excel", "Digital Marketing", "Graphic Design", "Video Editing", "UI/UX Design", "Ethical Hacking", "SQL", "Firebase", "Freelancing", "Instagram Growth", "YouTube Growth", "Stock Market", "Spoken English", "AI Tools", "Canva", "ChatGPT Prompting"],
     kinds: ["Complete Course", "Masterclass", "Bootcamp", "Zero to Hero", "Crash Course", "Course (Hindi)", "Pro Course"],
     tech: ["Video lessons + notes", "Recorded lectures + projects", "HD videos + certificate", "Hindi videos + source code"],
-    price: [49, 1499],
+    price: [100, 2000],
   },
   {
     category: "Templates", type: "website",
     subjects: ["Admin Dashboard", "SaaS Landing", "Agency", "Blog", "App Landing", "Maintenance Page", "Login & Signup", "Pricing Page", "Email", "Resume", "Invitation", "Business Card", "Instagram Post", "YouTube Thumbnail", "Presentation", "Notion"],
     kinds: ["Template", "UI Kit", "Template Pack", "Bundle", "Kit"],
     tech: ["HTML, Tailwind", "React, shadcn/ui", "Figma", "Canva", "Bootstrap"],
-    price: [29, 799],
+    price: [100, 1000],
   },
 ];
 
@@ -118,9 +118,9 @@ function coverSvg(title: string, category: string, type: "course" | "website", p
 
 function roundPrice(r: () => number, [lo, hi]: [number, number]): number {
   const raw = lo + r() * (hi - lo);
-  // Indian-style price endings: 99, 49, 199, 299 ...
-  const base = Math.floor(raw / 50) * 50;
-  return Math.max(lo, base + (r() < 0.6 ? 49 : -1));
+  // Round prices: 100s below 1000 (300, 500, 800), 500s/1000s above (1500, 2000, 3000)
+  const step = raw >= 1000 ? (r() < 0.5 ? 1000 : 500) : 100;
+  return Math.max(lo, Math.round(raw / step) * step);
 }
 
 function buildDemoProducts(): DemoProduct[] {
@@ -142,7 +142,7 @@ function buildDemoProducts(): DemoProduct[] {
     const idx = out.length + 1;
     const price = roundPrice(r, g.price);
     const onSale = r() < 0.55;
-    const originalPrice = onSale ? Math.round((price * (1.4 + r() * 1.2)) / 10) * 10 - 1 : undefined;
+    const originalPrice = onSale ? Math.ceil((price * (1.4 + r() * 1.2)) / (price >= 1000 ? 500 : 100)) * (price >= 1000 ? 500 : 100) : undefined;
     const tech = pick(r, g.tech);
     const description = g.type === "course"
       ? `${title} by ZexoFile. Learn step by step with practical examples.\n\nWhat you get:\n- ${tech}\n- Lifetime access\n- Beginner friendly, Hindi + English\n- Doubt support on email`
