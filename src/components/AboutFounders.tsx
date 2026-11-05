@@ -6,7 +6,7 @@ import shivamImg from "@/assets/shivam.png";
 
 const founders = [
   { name: "Nitesh Prakash", role: "Co-Founder & CEO", expertise: "Full-Stack Web Developer", image: niteshImg },
-  { name: "Shivam Kumar", role: "Co-Founder & CEO", expertise: "App & Web Developer", image: shivamImg },
+  { name: "Himanshu Sinha", role: "Co-Founder & CEO", expertise: "App & Web Developer", image: shivamImg },
 ];
 
 const skills = [
@@ -27,9 +27,9 @@ const AboutFounders: React.FC = () => {
       {/* Founders Photo */}
       <div className="max-w-xs mx-auto mb-8 animate-fade-in">
         <div className="relative rounded-2xl overflow-hidden shadow-lg border border-border">
-          <img src={foundersImg} alt="Nitesh Prakash & Shivam Kumar - Founders of ZexoFile Shop" className="w-full aspect-[3/4] object-cover" />
+          <img src={foundersImg} alt="Nitesh Prakash & Himanshu Sinha - Founders of ZexoFile Shop" className="w-full aspect-[3/4] object-cover" />
           <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-foreground/70 to-transparent p-4">
-            <p className="text-sm font-bold text-white text-center">Nitesh & Shivam</p>
+            <p className="text-sm font-bold text-white text-center">Nitesh & Himanshu</p>
             <p className="text-xs text-white/80 text-center">Co-Founders, ZexoFile Shop</p>
           </div>
         </div>
@@ -59,7 +59,7 @@ const AboutFounders: React.FC = () => {
           <Rocket size={16} /> About ZexoFile
         </h3>
         <p className="text-xs text-muted-foreground leading-relaxed">
-          ZexoFile Shop is a premium digital products store founded by <strong className="text-foreground">Nitesh Prakash</strong> and <strong className="text-foreground">Shivam Kumar</strong> — two passionate developers who specialize in building modern websites, mobile apps, and custom digital solutions.
+          ZexoFile Shop is a premium digital products store founded by <strong className="text-foreground">Nitesh Prakash</strong> and <strong className="text-foreground">Himanshu Sinha</strong> — two passionate developers who specialize in building modern websites, mobile apps, and custom digital solutions.
         </p>
         <p className="text-xs text-muted-foreground leading-relaxed mt-2">
           With years of experience in full-stack development, we create pixel-perfect, production-ready digital products that help businesses and individuals stand out online. From ready-made website templates to custom-built applications, we deliver quality that speaks for itself.
